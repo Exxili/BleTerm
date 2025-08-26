@@ -3,6 +3,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+import noble from '@abandonware/noble'
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -52,7 +54,15 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  createWindow()
+  noble.on('discover', async (peripheral) => {
+    console.log('Discovered:', peripheral.advertisement.localName)
+  })
+
+  noble.on('stateChange', async (state) => {
+    if (state === 'poweredOn') {
+      await noble.startScanningAsync()
+    }
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
