@@ -1,9 +1,18 @@
 import "./App.css";
+import { Card, Progress, Text } from "@mantine/core";
 
 function App() {
   return (
     <>
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
+      <Card withBorder radius="md" padding="xl" bg="var(--mantine-color-body)">
+        <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
+          Monthly goal
+        </Text>
+        <Text fz="lg" fw={500}>
+          $5.431 / $10.000
+        </Text>
+        <Progress value={54.31} mt="md" size="lg" radius="xl" />
+      </Card>
     </>
   );
 }
