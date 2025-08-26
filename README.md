@@ -1,30 +1,36 @@
-# React + TypeScript + Vite
+# BleTerm
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An opinionated desktop app (Electron + React + Vite) for talking to **embedded devices over Bluetooth Low Energy (BLE)**.  
+It focuses on a “terminal-like” workflow: **send text** to a write characteristic and **listen** to notify/indicate characteristics.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features (MVP)
 
-## Expanding the ESLint configuration
+- Discover & connect to a BLE device by name/UUID
+- Send text payloads to a configurable **write** characteristic
+- Subscribe to **notify/indicate** characteristics and stream incoming data
+- Cross-platform runtime with Electron (macOS, Windows, Linux)
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+> Status: Early development. APIs/UX may change.
 
-- Configure the top-level `parserOptions` property like this:
+---
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+## Tech stack
+
+- **Electron** (main & preload)
+- **React + Vite** (renderer UI)
+- **TypeScript**
+- **BLE** via `@abandonware/noble` (Node BLE stack)
+
+---
+
+## Getting started
+
+```bash
+# install
+npm i
+
+# dev (starts Vite + Electron)
+npm run dev
 ```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
