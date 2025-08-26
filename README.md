@@ -1,2 +1,1 @@
-# exia-idle
 # BleTerm
