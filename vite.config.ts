@@ -1,29 +1,33 @@
-import { defineConfig } from 'vite'
-import path from 'node:path'
-import electron from 'vite-plugin-electron/simple'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import path from "node:path";
+import electron from "vite-plugin-electron/simple";
+import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
+// optional: create electron/hci-stub.ts exporting an empty object if you want the alias
+// export default {};
+
 export default defineConfig({
   plugins: [
     react(),
     electron({
       main: {
-        // Shortcut of `build.lib.entry`.
-        entry: 'electron/main.ts',
+        entry: "electron/main.ts",
+        // ⬇️ add per-main Vite options here
+        vite: {
+          build: {
+            rollupOptions: {
+              // keep @abandonware/* (noble + backends) external so Node resolves at runtime
+              external: [/^@abandonware\/.*/, "ws"],
+            },
+          },
+        },
       },
       preload: {
-        // Shortcut of `build.rollupOptions.input`.
-        // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-        input: path.join(__dirname, 'electron/preload.ts'),
+        input: path.join(__dirname, "electron/preload.ts"),
+        // (optional) if you also need externals in preload, add a vite:{} block here too
+        // vite: { build: { rollupOptions: { external: [] } } }
       },
-      // Ployfill the Electron and Node.js API for Renderer process.
-      // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
-      // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
-      renderer: process.env.NODE_ENV === 'test'
-        // https://github.com/electron-vite/vite-plugin-electron-renderer/issues/78#issuecomment-2053600808
-        ? undefined
-        : {},
+      renderer: process.env.NODE_ENV === "test" ? undefined : {},
     }),
   ],
-})
+});
