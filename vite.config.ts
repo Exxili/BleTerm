@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import path from "node:path";
 import electron from "vite-plugin-electron/simple";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // optional: create electron/hci-stub.ts exporting an empty object if you want the alias
 // export default {};
@@ -9,6 +10,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     electron({
       main: {
         entry: "electron/main.ts",
