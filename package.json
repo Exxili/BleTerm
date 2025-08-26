@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-26",
+    "@tailwindcss/vite": "^4.1.12",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^4.1.12"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
