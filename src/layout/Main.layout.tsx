@@ -1,4 +1,6 @@
 import TitleBarFactory from "../components/TitleBarFactory";
+import FooterBar from "../components/FooterBar";
+import TerminalLayout from "./Terminal.layout";
 
 /**
  * MainLayout
@@ -7,9 +9,14 @@ import TitleBarFactory from "../components/TitleBarFactory";
  */
 const MainLayout = (): React.JSX.Element => {
   return (
-    <div className="w-full h-full flex flex-col items-stretch justify-between">
+    <div className="w-full h-screen flex flex-col">
       <TitleBarFactory />
+      <div className="flex-1 overflow-hidden">
+        <TerminalLayout />
+      </div>
+      <FooterBar />
     </div>
   );
 };
+
 export default MainLayout;
