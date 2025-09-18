@@ -13,32 +13,37 @@ function BleScanner(): React.JSX.Element {
   const startScan = (): void => {
     setIsScanning(true);
     // This would communicate with the main process via IPC
-    window.electron.ipcRenderer.send("start-ble-scan");
+    window.ipcRenderer.send("start-ble-scan");
   };
 
   const stopScan = (): void => {
     setIsScanning(false);
     // This would communicate with the main process via IPC
-    window.electron.ipcRenderer.send("stop-ble-scan");
+    window.ipcRenderer.send("stop-ble-scan");
   };
 
   useEffect(() => {
+    const onBleDeviceDiscovered = (
+      _: Electron.IpcRendererEvent,
+      device: any
+    ) => {
+      // Log the type of device for debugging
+      console.log("Discovered device:", device);
+
+      setDevices((prev) => {
+        const exists = prev.find((d) => d.id === device.id);
+        if (exists) {
+          return prev.map((d) => (d.id === device.id ? device : d));
+        }
+        return [...prev, device];
+      });
+    };
+
     // Listen for discovered devices
-    const removeListener = window.electron.ipcRenderer.on(
-      "ble-device-discovered",
-      (_, device) => {
-        setDevices((prev) => {
-          const exists = prev.find((d) => d.id === device.id);
-          if (exists) {
-            return prev.map((d) => (d.id === device.id ? device : d));
-          }
-          return [...prev, device];
-        });
-      }
-    );
+    window.ipcRenderer.on("ble-device-discovered", onBleDeviceDiscovered);
 
     return () => {
-      removeListener?.();
+      window.ipcRenderer.off("ble-device-discovered", onBleDeviceDiscovered);
     };
   }, []);
 
