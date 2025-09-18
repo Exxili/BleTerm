@@ -1,5 +1,6 @@
 import { ipcRenderer, contextBridge } from "electron";
 import { PlatformService } from "./services/platform";
+import { WindowControlService } from "./services/window";
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld("ipcRenderer", {
@@ -41,3 +42,23 @@ const PlatformApi = {
  * @description Exposes platform-specific functionalities to the renderer process.
  */
 contextBridge.exposeInMainWorld("platform", PlatformApi);
+
+/**
+ * ----------------------------
+ * Window API
+ * ----------------------------
+ */
+
+const WindowControlApi = {
+  minimize: () => ipcRenderer.invoke("window-minimize"),
+  maximize: () => ipcRenderer.invoke("window-maximize"),
+  unmaximize: () => ipcRenderer.invoke("window-unmaximize"),
+  close: () => ipcRenderer.invoke("window-close"),
+  isMaximized: () => ipcRenderer.invoke("window-is-maximized"),
+} satisfies WindowControlService;
+
+/**
+ * Window Control API
+ * @description Exposes window-specific functionalities to the renderer process.
+ */
+contextBridge.exposeInMainWorld("windowcontrol", WindowControlApi);

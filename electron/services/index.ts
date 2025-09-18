@@ -1,5 +1,9 @@
-import { SetupBluetoothService, DestroyBluetoothService } from "./bluetooth";
+import { SetupBluetoothServices, DestroyBluetoothServices } from "./bluetooth";
 import { DestroyPlatformServices, SetupPlatformServices } from "./platform";
+import {
+  DestroyWindowControlServices,
+  SetupWindowControlServices,
+} from "./window";
 
 /**
  * Services Entry Point
@@ -9,7 +13,8 @@ import { DestroyPlatformServices, SetupPlatformServices } from "./platform";
  */
 export const SetupServices = (): void => {
   SetupPlatformServices();
-  SetupBluetoothService();
+  SetupWindowControlServices();
+  SetupBluetoothServices();
 };
 
 /**
@@ -19,5 +24,6 @@ export const SetupServices = (): void => {
  */
 export const DestroyServices = (): void => {
   DestroyPlatformServices();
-  DestroyBluetoothService();
+  DestroyWindowControlServices();
+  DestroyBluetoothServices();
 };
