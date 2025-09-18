@@ -9,6 +9,12 @@ export const GenerateMainWindowConfig = (
   preloadPath: string
 ): Electron.BrowserWindowConstructorOptions => {
   return {
+    autoHideMenuBar: true,
+    frame: false,
+    minWidth: 800,
+    minHeight: 600,
+    width: 1024,
+    height: 768,
     icon: iconPath,
     webPreferences: {
       preload: preloadPath,

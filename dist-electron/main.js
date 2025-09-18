@@ -11,11 +11,41 @@ const GetMainWindow = () => {
 };
 const GenerateMainWindowConfig = (iconPath, preloadPath) => {
   return {
+    autoHideMenuBar: true,
+    frame: false,
+    minWidth: 800,
+    minHeight: 600,
+    width: 1024,
+    height: 768,
     icon: iconPath,
     webPreferences: {
       preload: preloadPath
     }
   };
+};
+const onNobleStateChange = (state) => {
+  console.log(`Noble State Change: ${state}`);
+  if (state === "poweredOn") {
+    noble.startScanningAsync();
+  }
+};
+const onNobleDeviceDiscover = (peripheral) => {
+  var _a;
+  (_a = GetMainWindow()) == null ? void 0 : _a.webContents.send("ble-device-discovered", {
+    id: peripheral.id,
+    name: peripheral.advertisement.localName,
+    rssi: peripheral.rssi
+  });
+};
+const AttachNobleEvents = () => {
+  noble.on("stateChange", onNobleStateChange);
+  noble.on("discover", onNobleDeviceDiscover);
+};
+const SetupBluetoothService = () => {
+  AttachNobleEvents();
+};
+const SetupServices = () => {
+  SetupBluetoothService();
 };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
@@ -69,21 +99,7 @@ app.on("activate", () => {
   }
 });
 app.whenReady().then(() => {
-  noble.on("stateChange", async (state) => {
-    if (state === "poweredOn") {
-      await noble.startScanningAsync();
-    }
-  });
-  noble.on("discover", async (peripheral) => {
-    var _a;
-    console.log("Discovered:", peripheral.advertisement.localName);
-    console.log("Window:", GetMainWindow());
-    (_a = GetMainWindow()) == null ? void 0 : _a.webContents.send("ble-device-discovered", {
-      id: peripheral.id,
-      name: peripheral.advertisement.localName,
-      rssi: peripheral.rssi
-    });
-  });
+  SetupServices();
   InitializeMainWindow();
 });
 export {
