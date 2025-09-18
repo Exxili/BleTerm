@@ -65,7 +65,7 @@ export const DettachNobleEvents = (): void => {
  * @description Initializes the Bluetooth service.
  * @return void
  */
-export const SetupBluetoothService = (): void => {
+export const SetupBluetoothServices = (): void => {
   AttachNobleEvents();
 };
 
@@ -74,6 +74,6 @@ export const SetupBluetoothService = (): void => {
  * @description Cleans up the Bluetooth service.
  * @return void
  */
-export const DestroyBluetoothService = (): void => {
+export const DestroyBluetoothServices = (): void => {
   DettachNobleEvents();
 };

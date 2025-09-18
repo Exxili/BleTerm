@@ -1,5 +1,6 @@
 /// <reference types="vite-plugin-electron/electron-env" />
 import { PlatformService } from "./services/platform";
+import { WindowControlService } from "./services/window";
 
 declare namespace NodeJS {
   interface ProcessEnv {
@@ -27,6 +28,7 @@ declare global {
   interface Window {
     ipcRenderer: import("electron").IpcRenderer;
     platform: PlatformService;
+    windowcontrol: WindowControlService;
   }
 }
 

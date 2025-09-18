@@ -27,3 +27,11 @@ const PlatformApi = {
   getPlatform: () => electron.ipcRenderer.invoke("get-platform")
 };
 electron.contextBridge.exposeInMainWorld("platform", PlatformApi);
+const WindowControlApi = {
+  minimize: () => electron.ipcRenderer.invoke("window-minimize"),
+  maximize: () => electron.ipcRenderer.invoke("window-maximize"),
+  unmaximize: () => electron.ipcRenderer.invoke("window-unmaximize"),
+  close: () => electron.ipcRenderer.invoke("window-close"),
+  isMaximized: () => electron.ipcRenderer.invoke("window-is-maximized")
+};
+electron.contextBridge.exposeInMainWorld("windowcontrol", WindowControlApi);

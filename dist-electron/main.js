@@ -1,4 +1,4 @@
-import { ipcMain, app, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, app } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import noble from "@abandonware/noble";
@@ -42,7 +42,7 @@ const AttachNobleEvents = () => {
   noble.on("stateChange", onNobleStateChange);
   noble.on("discover", onNobleDeviceDiscover);
 };
-const SetupBluetoothService = () => {
+const SetupBluetoothServices = () => {
   AttachNobleEvents();
 };
 const onGetCurrentPlatform = () => {
@@ -51,9 +51,48 @@ const onGetCurrentPlatform = () => {
 const SetupPlatformServices = () => {
   ipcMain.handle("get-platform", onGetCurrentPlatform);
 };
+const onWindowMinimize = () => {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    window.minimize();
+  }
+};
+const onWindowMaximize = () => {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    window.maximize();
+  }
+};
+const onWindowUnmaximize = () => {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    window.unmaximize();
+  }
+};
+const onWindowClose = () => {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    window.close();
+  }
+};
+const onWindowIsMaximized = () => {
+  const window = BrowserWindow.getFocusedWindow();
+  if (window) {
+    return window.isMaximized();
+  }
+  return false;
+};
+const SetupWindowControlServices = () => {
+  ipcMain.handle("window-minimize", onWindowMinimize);
+  ipcMain.handle("window-maximize", onWindowMaximize);
+  ipcMain.handle("window-unmaximize", onWindowUnmaximize);
+  ipcMain.handle("window-close", onWindowClose);
+  ipcMain.handle("window-is-maximized", onWindowIsMaximized);
+};
 const SetupServices = () => {
   SetupPlatformServices();
-  SetupBluetoothService();
+  SetupWindowControlServices();
+  SetupBluetoothServices();
 };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
