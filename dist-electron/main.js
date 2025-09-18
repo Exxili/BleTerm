@@ -1,7 +1,8 @@
-import { app, BrowserWindow } from "electron";
+import { ipcMain, app, BrowserWindow } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import noble from "@abandonware/noble";
+import os from "os";
 let MainWindow = null;
 const SetMainWindow = (window) => {
   MainWindow = window;
@@ -44,7 +45,14 @@ const AttachNobleEvents = () => {
 const SetupBluetoothService = () => {
   AttachNobleEvents();
 };
+const onGetCurrentPlatform = () => {
+  return os.platform();
+};
+const SetupPlatformServices = () => {
+  ipcMain.handle("get-platform", onGetCurrentPlatform);
+};
 const SetupServices = () => {
+  SetupPlatformServices();
   SetupBluetoothService();
 };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,9 +91,13 @@ const LoadRenderer = () => {
   }
 };
 const InitializeMainWindow = () => {
+  var _a;
   CreateMainWindow();
   AttachMainWindowEvents();
   LoadRenderer();
+  if (!app.isPackaged) {
+    (_a = GetMainWindow()) == null ? void 0 : _a.webContents.openDevTools();
+  }
 };
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
