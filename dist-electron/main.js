@@ -1,41 +1,71 @@
 import { app, BrowserWindow } from "electron";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import noble from "@abandonware/noble";
-createRequire(import.meta.url);
+let MainWindow = null;
+const SetMainWindow = (window) => {
+  MainWindow = window;
+};
+const GetMainWindow = () => {
+  return MainWindow;
+};
+const GenerateMainWindowConfig = (iconPath, preloadPath) => {
+  return {
+    icon: iconPath,
+    webPreferences: {
+      preload: preloadPath
+    }
+  };
+};
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-    webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
-    }
-  });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
+const CreateMainWindow = () => {
+  const MainWindow2 = new BrowserWindow(
+    GenerateMainWindowConfig(
+      path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+      path.join(__dirname, "preload.mjs")
+    )
+  );
+  SetMainWindow(MainWindow2);
+};
+const AttachMainWindowEvents = () => {
+  var _a;
+  (_a = GetMainWindow()) == null ? void 0 : _a.webContents.on("did-finish-load", onMainWindowDidFinishLoad);
+};
+const onMainWindowDidFinishLoad = () => {
+  var _a;
+  (_a = GetMainWindow()) == null ? void 0 : _a.webContents.send(
+    "main-process-message",
+    (/* @__PURE__ */ new Date()).toLocaleString()
+  );
+};
+const LoadRenderer = () => {
+  var _a, _b;
+  console.log("VITE_DEV_SERVER_URL:", VITE_DEV_SERVER_URL);
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
+    (_a = GetMainWindow()) == null ? void 0 : _a.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+    (_b = GetMainWindow()) == null ? void 0 : _b.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
-}
+};
+const InitializeMainWindow = () => {
+  CreateMainWindow();
+  AttachMainWindowEvents();
+  LoadRenderer();
+};
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
-    win = null;
+    SetMainWindow(null);
   }
 });
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    InitializeMainWindow();
   }
 });
 app.whenReady().then(() => {
@@ -45,9 +75,16 @@ app.whenReady().then(() => {
     }
   });
   noble.on("discover", async (peripheral) => {
+    var _a;
     console.log("Discovered:", peripheral.advertisement.localName);
+    console.log("Window:", GetMainWindow());
+    (_a = GetMainWindow()) == null ? void 0 : _a.webContents.send("ble-device-discovered", {
+      id: peripheral.id,
+      name: peripheral.advertisement.localName,
+      rssi: peripheral.rssi
+    });
   });
-  createWindow();
+  InitializeMainWindow();
 });
 export {
   MAIN_DIST,

@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["electron//*.ts", "plugins//*.ts"]
+  "include": ["electron/**/*.ts", "plugins//*.ts"]
 }
