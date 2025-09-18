@@ -96,6 +96,11 @@ const InitializeMainWindow = (): void => {
   AttachMainWindowEvents();
 
   LoadRenderer();
+
+  // Open the DevTools if the app is not packaged
+  if (!app.isPackaged) {
+    GetMainWindow()?.webContents.openDevTools();
+  }
 };
 
 // Quit when all windows are closed, except on macOS. There, it's common

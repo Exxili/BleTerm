@@ -1,4 +1,5 @@
 import { SetupBluetoothService, DestroyBluetoothService } from "./bluetooth";
+import { DestroyPlatformServices, SetupPlatformServices } from "./platform";
 
 /**
  * Services Entry Point
@@ -7,6 +8,7 @@ import { SetupBluetoothService, DestroyBluetoothService } from "./bluetooth";
  * Electron application.
  */
 export const SetupServices = (): void => {
+  SetupPlatformServices();
   SetupBluetoothService();
 };
 
@@ -16,5 +18,6 @@ export const SetupServices = (): void => {
  * @return void
  */
 export const DestroyServices = (): void => {
+  DestroyPlatformServices();
   DestroyBluetoothService();
 };

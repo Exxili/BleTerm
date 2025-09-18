@@ -1,4 +1,5 @@
 /// <reference types="vite-plugin-electron/electron-env" />
+import { PlatformService } from "./services/platform";
 
 declare namespace NodeJS {
   interface ProcessEnv {
@@ -22,15 +23,11 @@ declare namespace NodeJS {
 }
 
 declare global {
+  // Used in Renderer process, expose in `preload.ts`
   interface Window {
     ipcRenderer: import("electron").IpcRenderer;
-    // match anything else you exposed in preload
+    platform: PlatformService;
   }
-}
-
-// Used in Renderer process, expose in `preload.ts`
-interface Window {
-  ipcRenderer: import("electron").IpcRenderer;
 }
 
 export {};
