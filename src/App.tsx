@@ -1,12 +1,17 @@
 import "./App.css";
-import BleScanner from "./components/BleScanner";
+import MainLayout from "./layout/Main.layout";
 
-function App() {
+/**
+ * App
+ * @description The main application component.
+ * @returns A React component representing the main application.
+ */
+const App = () => {
   return (
     <>
-      <BleScanner />
+      <MainLayout />
     </>
   );
-}
+};
 
 export default App;

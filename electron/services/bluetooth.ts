@@ -1,10 +1,6 @@
 import noble from "@abandonware/noble";
 import { GetMainWindow } from "../state";
 
-export const SetupBluetoothService = (): void => {
-  AttachNobleEvents();
-};
-
 /** ------------------------------
  * Noble Events
  * -------------------------------
@@ -64,10 +60,20 @@ export const DettachNobleEvents = (): void => {
   noble.removeAllListeners();
 };
 
+/**
+ * SetupBluetoothService
+ * @description Initializes the Bluetooth service.
+ * @return void
+ */
 export const SetupBluetoothService = (): void => {
   AttachNobleEvents();
 };
 
+/**
+ * DestroyBluetoothService
+ * @description Cleans up the Bluetooth service.
+ * @return void
+ */
 export const DestroyBluetoothService = (): void => {
   DettachNobleEvents();
 };
