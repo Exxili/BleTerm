@@ -27,7 +27,6 @@ const FooterBar = (): React.JSX.Element => {
 
       <div className="flex items-center gap-4">
         <span>Connected</span>
-        <span>9600 baud</span>
       </div>
     </div>
   );
