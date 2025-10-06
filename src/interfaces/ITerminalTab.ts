@@ -1,4 +1,4 @@
-export interface TerminalTab {
+export interface ITerminalTab {
   id: string;
   label: string;
 }

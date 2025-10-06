@@ -1,41 +1,16 @@
-import { BLESection } from "../components/BleSection";
-import { FileCaptureSection } from "../components/FileCaptureSection";
+import BleSection from "./BleSection";
+import { FileCaptureSection } from "./FileCaptureSection";
+import { Collapsible } from "./Collapsible";
 import { useState } from "react";
-import { Characteristic } from "../interfaces/ICharacteristic";
-import type { TerminalTab } from "../interfaces/ITerminalTab";
-import { Collapsible } from "../components/Collapsible";
 
-export const SettingsSidebar = ({
+const SettingsSideBar = ({
   isDark,
-  ble,
-  capture,
+  onSelectDevice,
+  selectedDevice,
 }: {
   isDark: boolean;
-  ble: {
-    isScanning: boolean;
-    devices: Array<{ id: string; name: string }>;
-    services: Array<{ id: string; uuid: string }>;
-    characteristics: Characteristic[];
-    selectedDevice: string;
-    selectedService: string;
-    selectedWriteChar: string;
-    onScan: () => void;
-    onSelectDevice: (id: string) => void;
-    onSelectService: (id: string) => void;
-    onAttachCharacteristic: (id: string) => void;
-    onSelectWrite: (id: string) => void;
-    onClear: () => void;
-    tabs: TerminalTab[];
-    activeTab: string;
-  };
-  capture: {
-    enabled: boolean;
-    path: string;
-    format: string;
-    setEnabled: (b: boolean) => void;
-    setPath: (v: string) => void;
-    setFormat: (v: "raw" | "hex" | "utf8") => void;
-  };
+  onSelectDevice?: (id: string) => void;
+  selectedDevice?: string;
 }) => {
   const [bleOpen, setBleOpen] = useState(true);
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -52,7 +27,11 @@ export const SettingsSidebar = ({
         onToggle={() => setBleOpen((o) => !o)}
         isDark={isDark}
       >
-        <BLESection isDark={isDark} {...ble} />
+        <BleSection
+          isDark={isDark}
+          onSelectDevice={onSelectDevice}
+          selectedDevice={selectedDevice}
+        />
       </Collapsible>
 
       <Collapsible
@@ -61,8 +40,10 @@ export const SettingsSidebar = ({
         onToggle={() => setCaptureOpen((o) => !o)}
         isDark={isDark}
       >
-        <FileCaptureSection isDark={isDark} {...capture} />
+        <FileCaptureSection isDark={isDark} />
       </Collapsible>
     </div>
   );
 };
+
+export default SettingsSideBar;

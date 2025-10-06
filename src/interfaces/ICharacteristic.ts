@@ -1,4 +1,4 @@
-export interface Characteristic {
+export interface ICharacteristic {
   id: string;
   uuid: string;
   canWrite?: boolean;

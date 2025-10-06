@@ -16,10 +16,18 @@ export default defineConfig({
         entry: "electron/main.ts",
         // ⬇️ add per-main Vite options here
         vite: {
+          optimizeDeps: {
+            exclude: [
+              "@abandonware/noble",
+              "@abandonware/bluetooth-hci-socket",
+            ],
+          },
           build: {
             rollupOptions: {
-              // keep @abandonware/* (noble + backends) external so Node resolves at runtime
-              external: [/^@abandonware\/.*/, "ws"],
+              external: [
+                "@abandonware/noble",
+                "@abandonware/bluetooth-hci-socket",
+              ],
             },
           },
         },

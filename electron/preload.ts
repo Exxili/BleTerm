@@ -1,6 +1,8 @@
 import { ipcRenderer, contextBridge } from "electron";
 import { PlatformService } from "./services/platform";
 import { WindowControlService } from "./services/window";
+import { BLEChannels } from "./services/bluetooth";
+// import { BLEChannels } from "./services/bluetooth";
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld("ipcRenderer", {
@@ -62,3 +64,19 @@ const WindowControlApi = {
  * @description Exposes window-specific functionalities to the renderer process.
  */
 contextBridge.exposeInMainWorld("windowcontrol", WindowControlApi);
+
+/**
+ * ----------------------------
+ * Bluetooth API
+ * ----------------------------
+ */
+
+contextBridge.exposeInMainWorld("ble", {
+  scan: () => ipcRenderer.invoke("ble:scan:start"),
+  stop: () => ipcRenderer.invoke("ble:scan:stop"),
+  on: (channel: string, listener: (event: any, data: any) => void) =>
+    ipcRenderer.on(channel, listener),
+  off: (channel: string, listener: (...args: any[]) => void) =>
+    ipcRenderer.removeListener(channel, listener),
+  // channels: BLEChannels,
+});

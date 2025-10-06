@@ -29,6 +29,20 @@ declare global {
     ipcRenderer: import("electron").IpcRenderer;
     platform: PlatformService;
     windowcontrol: WindowControlService;
+    ble: {
+      scan: () => Promise<void>;
+      stop: () => Promise<void>;
+      on: (channel: string, listener: (event: any, data: any) => void) => void;
+      off: (channel: string, listener: (event: any, data: any) => void) => void;
+      channels: {
+        scanStart: string;
+        scanStop: string;
+        evtScanResult: string;
+        evtScanFinished: string;
+        evtState: string;
+        evtError: string;
+      };
+    };
   }
 }
 

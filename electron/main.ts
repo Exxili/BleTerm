@@ -6,7 +6,7 @@ import { GetMainWindow, SetMainWindow } from "./state";
 import { GenerateMainWindowConfig } from "./config/MainWindowConfig";
 import { SetupServices } from "./services";
 
-// const require = createRequire(import.meta.url);
+// export const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
