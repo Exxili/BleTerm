@@ -74,6 +74,8 @@ contextBridge.exposeInMainWorld("windowcontrol", WindowControlApi);
 contextBridge.exposeInMainWorld("ble", {
   scan: () => ipcRenderer.invoke("ble:scan:start"),
   stop: () => ipcRenderer.invoke("ble:scan:stop"),
+  connect: (peripheralId: string) =>
+    ipcRenderer.invoke("ble:connect", peripheralId),
   on: (channel: string, listener: (event: any, data: any) => void) =>
     ipcRenderer.on(channel, listener),
   off: (channel: string, listener: (...args: any[]) => void) =>

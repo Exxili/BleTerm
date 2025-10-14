@@ -1,108 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // import noble from "@abandonware/noble";
 // import { GetMainWindow } from "../state";
 
 import { ipcMain } from "electron";
 import noble, { Peripheral } from "@abandonware/noble";
 import { GetMainWindow } from "../state";
-
-// /** ------------------------------
-//  * Noble Events
-//  * -------------------------------
-//  */
-
-// /**
-//  * onNobleStateChange
-//  * @description Handles changes in the Bluetooth adapter state.
-//  * @param state The new state of the Bluetooth adapter
-//  */
-// const onNobleStateChange = (state: string): void => {
-//   console.log(`Noble State Change: ${state}`);
-
-//   if (state === "poweredOn") {
-//     noble.startScanningAsync(); // Start scanning (allow duplicates)
-//   }
-// };
-
-// /**
-//  * onNobleDeviceDiscover
-//  * @description Handles the discovery of a new peripheral device.
-//  * @param peripheral The discovered peripheral device
-//  */
-// const onNobleDeviceDiscover = (peripheral: noble.Peripheral): void => {
-//   GetMainWindow()?.webContents.send("ble-device-discovered", {
-//     id: peripheral.id,
-//     name: peripheral.advertisement.localName,
-//     rssi: peripheral.rssi,
-//   });
-// };
-
-// /** ------------------------------
-//  * Functions
-//  * ------------------------------
-//  */
-
-// /**
-//  * AttachNobleEvents
-//  * @description Attaches all noble event listeners.
-//  * @return void
-//  */
-// export const AttachNobleEvents = (): void => {
-//   // State Change
-//   noble.on("stateChange", onNobleStateChange);
-
-//   // Device Discovery
-//   noble.on("discover", onNobleDeviceDiscover);
-// };
-
-// /**
-//  * DettachNobleEvents
-//  * @description Dettaches all noble event listeners.
-//  * @return void
-//  */
-// export const DettachNobleEvents = (): void => {
-//   // State Change
-//   noble.removeAllListeners();
-// };
-
-// /**
-//  * SetupBluetoothService
-//  * @description Initializes the Bluetooth service.
-//  * @return void
-//  */
-// export const SetupBluetoothServices = (): void => {
-//   AttachNobleEvents();
-// };
-
-// /**
-//  * DestroyBluetoothService
-//  * @description Cleans up the Bluetooth service.
-//  * @return void
-//  */
-// export const DestroyBluetoothServices = (): void => {
-//   DettachNobleEvents();
-// };
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-// new attempt
-
-// current error:
-
-// ✓ 33 modules transformed.
-// [commonjs--resolver] node_modules/@abandonware/bluetooth-hci-socket/build/Release/bluetooth_hci_socket.node (1:3): Unexpected character '\0' (Note that you need plugins to import files that are not JavaScript)
-// file: C:/Users/Exxili/Documents/Github/BleTerm/node_modules/@abandonware/noble/index.js:1:3
-
-// 1: MZ�♥♦���☺▼�� �!�☺L�!This program cannot be run in DOS mode.
-//       ^
-// 2: $l�%�(�K�(�K�(�K�c�H�/�K�c�Nٯ�K�c�O�"�Kد♣H�!�Kد♣O�&�Kد♣N�    �K�c�J�+�K�(�J�r�Kا♣B�)�Kا♣��)�Kا♣I�)�K�Rich(�K�...
-// 3: �☺H��(��~�♣�O��H��(�I��H��(�M����H��(�↑☺H�\H�t$►H�|$ AVH�� H��L��3��������u♠�؈D$@@�☺�=q�☺...
-
-// transforming (36) node_modules\usb\dist\usb\bindings.js
-// VITE_DEV_SERVER_URL: http://localhost:5173/
-// [38460:1006/210827.256:ERROR:CONSOLE(1)] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
-// ERROR: The process "38460" not found.
-
-// /* eslint-disable @typescript-eslint/no-var-requires */
-// /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * ------------------------------
@@ -116,6 +19,10 @@ export const BLEChannels = {
   evtScanResult: "ble:scan:result",
   evtScanFinished: "ble:scan:finished",
   evtError: "ble:error",
+
+  connect: "ble:connect",
+  evtConnected: "ble:connected",
+  evtDisconnected: "ble:disconnected",
 } as const;
 
 /**
@@ -151,6 +58,28 @@ const peripheralToPayload = (p: Peripheral) => ({
     ? p.advertisement.manufacturerData.toString("hex")
     : undefined,
 });
+
+const promisifyIfNeeded = <T>(
+  fn: Function,
+  ctx: any,
+  ...args: any[]
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const cb = (err: any, res: T) => (err ? reject(err) : resolve(res));
+    try {
+      fn.apply(ctx, [...args, cb]);
+    } catch (e) {
+      reject(e);
+    }
+  });
+
+const getDiscoveredPeripheral = (id: string): Peripheral | undefined => {
+  // noble keeps an internal map we can use after discovery
+  const map = (noble as any)._peripherals as
+    | Record<string, Peripheral>
+    | undefined;
+  return map?.[id];
+};
 
 /**
  * startScan
@@ -222,6 +151,60 @@ const onNobleDeviceDiscover = (peripheral: Peripheral): void => {
   sendToRenderer(BLEChannels.evtScanResult, peripheralToPayload(peripheral));
 };
 
+/*
+ * ------------------------------
+ * Handlers
+ * ------------------------------
+ *
+ */
+
+const handleConnect = async (
+  _e: Electron.IpcMainInvokeEvent,
+  peripheralId: string
+) => {
+  try {
+    if (noble._state !== "poweredOn") {
+      throw new Error(`Adapter not poweredOn (state=${noble._state})`);
+    }
+
+    const p = getDiscoveredPeripheral(peripheralId);
+    if (!p) {
+      throw new Error(
+        `Peripheral ${peripheralId} not found — scan first and pick an id from results.`
+      );
+    }
+
+    // Connect (supports both connectAsync and callback forms)
+    if ((p as any).connectAsync) {
+      await (p as any).connectAsync();
+    } else {
+      await promisifyIfNeeded<void>(p.connect, p);
+    }
+
+    // notify renderer
+    const payload = peripheralToPayload(p);
+    sendToRenderer(BLEChannels.evtConnected, payload);
+
+    // also forward future remote disconnects
+    const onDisc = () => {
+      p.removeListener("disconnect", onDisc);
+      sendToRenderer(BLEChannels.evtDisconnected, {
+        id: p.id,
+        reason: "remote",
+      });
+    };
+    p.on("disconnect", onDisc);
+
+    return payload; // so renderer can await the invoke and get basic info
+  } catch (e: any) {
+    sendToRenderer(BLEChannels.evtError, {
+      context: "connect",
+      message: e?.message || String(e),
+    });
+    throw e; // propagate to renderer invoke() caller
+  }
+};
+
 /**
  * ------------------------------
  * Attach / Detach
@@ -263,6 +246,9 @@ const registerIpcHandlers = (): void => {
   ipcMain.handle(BLEChannels.scanStop, async () => {
     // await stopScan();
   });
+
+  // ✅ NEW:
+  ipcMain.handle(BLEChannels.connect, handleConnect);
 };
 
 /**

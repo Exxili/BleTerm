@@ -1,4 +1,4 @@
-import BleSection from "./BleSection";
+import { BleSection } from "./BleSection";
 import { FileCaptureSection } from "./FileCaptureSection";
 import { Collapsible } from "./Collapsible";
 import { useState } from "react";

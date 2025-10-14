@@ -25,7 +25,11 @@ export const BLEChannels = {
   evtError: "ble:error",
 } as const;
 
-const BleSection = ({ isDark, onSelectDevice, selectedDevice }: Props) => {
+export const BleSection = ({
+  isDark,
+  onSelectDevice,
+  selectedDevice,
+}: Props) => {
   // Guard if preload failed or running outside Electron
   const bridge = (window as any)?.ble;
   const ch = BLEChannels;
@@ -92,11 +96,11 @@ const BleSection = ({ isDark, onSelectDevice, selectedDevice }: Props) => {
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center gap-2">
         <button
           onClick={startScan}
           disabled={scanning}
-          className={`px-3 py-1 rounded bg-blue-600 hover:bg-blue-500`}
+          className={`w-full px-3 py-1 rounded bg-blue-600 hover:bg-blue-500`}
         >
           Scan
         </button>
@@ -167,5 +171,3 @@ const BleSection = ({ isDark, onSelectDevice, selectedDevice }: Props) => {
     </div>
   );
 };
-
-export default BleSection;

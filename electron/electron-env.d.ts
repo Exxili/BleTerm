@@ -32,6 +32,7 @@ declare global {
     ble: {
       scan: () => Promise<void>;
       stop: () => Promise<void>;
+      connect: (peripheralId: string) => Promise<BlePeripheralPayload>;
       on: (channel: string, listener: (event: any, data: any) => void) => void;
       off: (channel: string, listener: (event: any, data: any) => void) => void;
       channels: {

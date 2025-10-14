@@ -1,5 +1,4 @@
 import "./App.css";
-import BleScanner from "./components/BleScanner";
 import MainLayout from "./layout/Main.layout";
 
 /**
@@ -11,7 +10,6 @@ const App = () => {
   return (
     <>
       <MainLayout />
-      {/* <BleScanner /> */}
     </>
   );
 };

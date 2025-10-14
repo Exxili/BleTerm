@@ -11,9 +11,9 @@ export const GenerateMainWindowConfig = (
   return {
     autoHideMenuBar: true,
     frame: false,
-    minWidth: 800,
+    minWidth: 1150,
     minHeight: 600,
-    width: 1024,
+    width: 1150,
     height: 768,
     icon: iconPath,
     webPreferences: {

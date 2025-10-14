@@ -1,4 +1,4 @@
-import type { TerminalTab } from "../interfaces/ITerminalTab";
+import type { ITerminalTab } from "../interfaces/ITerminalTab";
 
 export const TerminalTabs = ({
   isDark,
@@ -8,7 +8,7 @@ export const TerminalTabs = ({
   capture,
 }: {
   isDark: boolean;
-  tabs: TerminalTab[];
+  tabs: ITerminalTab[];
   activeTab: string;
   onSelectTab: (id: string) => void;
   capture: { enabled: boolean; format: string; path: string };

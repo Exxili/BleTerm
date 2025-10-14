@@ -10,24 +10,28 @@ const TerminalLayout = (): React.JSX.Element => {
   const { colorScheme } = useMantineColorScheme();
   const isDark = colorScheme === "dark";
 
-  // Tabs (only console for step 1)
+  // Tabs
   const [tabs] = useState<ITerminalTab[]>([
     { id: "console", label: "Console" },
   ]);
   const [activeTab, setActiveTab] = useState("console");
 
-  // Step 1: Only scanning (no services/characteristics yet)
+  // Selected device (from BLE sidebar)
   const [selectedDevice, setSelectedDevice] = useState<string>("");
 
-  // Write bar (empty until characteristics exist in later steps)
-  const [selectedWriteChar, setSelectedWriteChar] = useState<string>("");
-  const [sendValue, setSendValue] = useState<string>("");
+  // Writable chars (will be filled in Step 3 when we wire services/chars)
   const writable: ICharacteristic[] = [];
 
-  const handleSend = () => {
-    if (!selectedWriteChar || !sendValue.trim()) return;
-    // Placeholder: will wire in Step 3 (write path)
-    setSendValue("");
+  // Centralized send handler (single and autosend rows call this)
+  const handleSend = (
+    deviceId: string | undefined,
+    characteristicId: string,
+    value: string
+  ) => {
+    if (!deviceId || !characteristicId || !value.trim()) return;
+    // TODO Step 3: implement BLE write via window.ble.write(...)
+    // For now, just a placeholder
+    console.log("Send:", { deviceId, characteristicId, value });
   };
 
   return (
@@ -45,18 +49,16 @@ const TerminalLayout = (): React.JSX.Element => {
             path: "captures/session.log",
           }}
         />
+
         <TerminalSendBar
           isDark={isDark}
           writable={writable}
-          selectedWriteChar={selectedWriteChar}
-          onSelectWriteChar={setSelectedWriteChar}
-          value={sendValue}
-          onChangeValue={setSendValue}
+          selectedDevice={selectedDevice}
           onSend={handleSend}
         />
       </div>
 
-      {/* Right: Settings sidebar (scan only for Step 1) */}
+      {/* Right: Settings sidebar */}
       <SettingsSideBar
         isDark={isDark}
         onSelectDevice={setSelectedDevice}
