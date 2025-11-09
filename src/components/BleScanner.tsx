@@ -6,7 +6,7 @@ interface Device {
   rssi?: number;
 }
 
-function BleScanner(): React.JSX.Element {
+function BleScanner(): React.JSX.Element {`1`
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
 

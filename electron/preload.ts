@@ -76,6 +76,15 @@ contextBridge.exposeInMainWorld("ble", {
   stop: () => ipcRenderer.invoke("ble:scan:stop"),
   connect: (peripheralId: string) =>
     ipcRenderer.invoke("ble:connect", peripheralId),
+  disconnect: (peripheralId: string) =>
+    ipcRenderer.invoke("ble:disconnect", peripheralId),
+  services: (peripheralId: string) => ipcRenderer.invoke("ble:services", peripheralId),
+  read: (peripheralId: string, serviceUuid: string, charUuid: string) =>
+    ipcRenderer.invoke("ble:read", peripheralId, serviceUuid, charUuid),
+  notifyStart: (peripheralId: string, serviceUuid: string, charUuid: string) =>
+    ipcRenderer.invoke("ble:notify:start", peripheralId, serviceUuid, charUuid),
+  notifyStop: (peripheralId: string, serviceUuid: string, charUuid: string) =>
+    ipcRenderer.invoke("ble:notify:stop", peripheralId, serviceUuid, charUuid),
   on: (channel: string, listener: (event: any, data: any) => void) =>
     ipcRenderer.on(channel, listener),
   off: (channel: string, listener: (...args: any[]) => void) =>

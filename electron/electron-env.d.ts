@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="vite-plugin-electron/electron-env" />
 import { PlatformService } from "./services/platform";
 import { WindowControlService } from "./services/window";
@@ -32,17 +33,16 @@ declare global {
     ble: {
       scan: () => Promise<void>;
       stop: () => Promise<void>;
-      connect: (peripheralId: string) => Promise<BlePeripheralPayload>;
+      connect: (peripheralId: string) => Promise<any>;
+      disconnect: (peripheralId: string) => Promise<void>;
+      services: (
+        peripheralId: string
+      ) => Promise<Array<{ uuid: string; characteristics: Array<{ uuid: string; properties: string[] }> }>>;
+      read: (peripheralId: string, serviceUuid: string, charUuid: string) => Promise<string>;
+      notifyStart: (peripheralId: string, serviceUuid: string, charUuid: string) => Promise<void>;
+      notifyStop: (peripheralId: string, serviceUuid: string, charUuid: string) => Promise<void>;
       on: (channel: string, listener: (event: any, data: any) => void) => void;
       off: (channel: string, listener: (event: any, data: any) => void) => void;
-      channels: {
-        scanStart: string;
-        scanStop: string;
-        evtScanResult: string;
-        evtScanFinished: string;
-        evtState: string;
-        evtError: string;
-      };
     };
   }
 }

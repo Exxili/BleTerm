@@ -1,121 +1,86 @@
-import { useEffect, useState, useCallback } from "react";
-
-interface ScanDevice {
-  id: string;
-  localName: string;
-  rssi: number;
-  address?: string;
-  connectable?: boolean;
-  serviceUuids?: string[];
-  manufacturerData?: string;
-}
+import { useEffect } from "react";
+import { Button, Badge, Group, Paper, Text, Stack, Loader } from "@mantine/core";
+import { useBleStore } from "../state/useBleStore";
 
 interface Props {
   isDark: boolean;
   onSelectDevice?: (id: string) => void;
   selectedDevice?: string;
+  onWritableChange?: (chars: { id: string; uuid: string }[]) => void;
+  onCreateTab?: (tab: { id: string; label: string }) => void;
 }
-
-export const BLEChannels = {
-  scanStart: "ble:scan:start",
-  scanStop: "ble:scan:stop",
-  evtState: "ble:state",
-  evtScanResult: "ble:scan:result",
-  evtScanFinished: "ble:scan:finished",
-  evtError: "ble:error",
-} as const;
-
 export const BleSection = ({
   isDark,
   onSelectDevice,
   selectedDevice,
+  onWritableChange,
+  onCreateTab,
 }: Props) => {
-  // Guard if preload failed or running outside Electron
-  const bridge = (window as any)?.ble;
-  const ch = BLEChannels;
+  // Zustand-backed state and actions
+  const scanning = useBleStore((s) => s.scanning);
+  const devices = useBleStore((s) => s.devices);
+  const error = useBleStore((s) => s.error);
+  const connected = useBleStore((s) => s.connected);
+  const services = useBleStore((s) => s.services);
+  const discovering = useBleStore((s) => s.discovering);
 
-  // const [adapterState, setAdapterState] = useState("unknown");
-  const [scanning, setScanning] = useState(false);
-  const [devices, setDevices] = useState<ScanDevice[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const startScan = useBleStore((s) => s.startScan);
+  const connect = useBleStore((s) => s.connect);
+  const disconnect = useBleStore((s) => s.disconnect);
+  const refreshServices = useBleStore((s) => s.refreshServices);
+  const selectDevice = useBleStore((s) => s.selectDevice);
 
-  const startScan = useCallback(async () => {
-    if (!bridge) return;
-    setDevices([]);
-    setError(null);
-    setScanning(true);
-    await bridge.scan();
-  }, [bridge]);
-
-  const stopScan = useCallback(async () => {
-    if (!bridge) return;
-    await bridge.stop();
-  }, [bridge]);
-
+  // Derive and emit writables whenever services change
   useEffect(() => {
-    // Log bridge and channels for debugging
-    console.log("BLE Bridge:", bridge);
-
-    console.log("BLE Channels:", ch);
-
-    if (!bridge || !ch) return;
-    // const onState = (_: any, d: any) => {
-    //   console.log("Adapter state:", d.state);
-    //   setAdapterState(d.state);
-    // };
-    const onResult = (_: any, dev: ScanDevice) =>
-      setDevices((prev) =>
-        prev.find((p) => p.id === dev.id) ? prev : [...prev, dev]
-      );
-    const onFinished = () => setScanning(false);
-    const onErr = (_: any, d: any) => {
-      setError(d.message || "BLE error");
-      setScanning(false);
-    };
-
-    // bridge.on(ch.evtState, onState);
-    bridge.on(ch.evtScanResult, onResult);
-    bridge.on(ch.evtScanFinished, onFinished);
-    bridge.on(ch.evtError, onErr);
-    return () => {
-      // bridge.off(ch.evtState, onState);
-      bridge.off(ch.evtScanResult, onResult);
-      bridge.off(ch.evtScanFinished, onFinished);
-      bridge.off(ch.evtError, onErr);
-    };
-  }, [bridge, ch]);
-
-  if (!bridge || !ch) {
-    return (
-      <div className="text-xs opacity-60">
-        BLE bridge not available (preload not loaded or running outside
-        Electron).
-      </div>
+    if (!onWritableChange) return;
+    const writables = (services || []).flatMap((svc: any) =>
+      (svc.characteristics || [])
+        .filter(
+          (c: any) =>
+            (c.properties || []).includes("write") ||
+            (c.properties || []).includes("writeWithoutResponse")
+        )
+        .map((c: any) => ({ id: `${svc.uuid}:${c.uuid}` as string, uuid: c.uuid as string }))
     );
-  }
+    onWritableChange(writables);
+  }, [services, onWritableChange]);
 
   return (
     <div className="space-y-4 text-xs">
-      <div className="flex justify-between items-center gap-2">
-        <button
-          onClick={startScan}
-          disabled={scanning}
-          className={`w-full px-3 py-1 rounded bg-blue-600 hover:bg-blue-500`}
-        >
-          Scan
-        </button>
-        <button
-          onClick={stopScan}
-          disabled={!scanning}
-          className={`px-3 py-1 rounded ${
-            scanning
-              ? "bg-gray-600 hover:bg-gray-500"
-              : "bg-gray-700 opacity-50 cursor-not-allowed"
-          }`}
-        >
-          Stop
-        </button>
-      </div>
+      {!connected ? (
+        <div className="flex items-center gap-2">
+          <Button onClick={startScan} loading={scanning} fullWidth>
+            {scanning ? "Scanning…" : "Scan"}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Paper withBorder p="xs">
+            <Text size="sm" fw={600}>Connected to</Text>
+            <Text size="xs" c="dimmed">
+              {connected?.name ? (
+                <>
+                  {connected.name} <span className="opacity-60">[{connected.id}]</span>
+                </>
+              ) : (
+                connected?.id
+              )}
+            </Text>
+          </Paper>
+          <Group grow>
+            <Button variant="light" onClick={refreshServices}>Refresh services</Button>
+            <Button color="red" variant="light" onClick={() => disconnect(connected?.id)}>Disconnect</Button>
+          </Group>
+          {discovering && (
+            <Paper withBorder p="sm">
+              <Group gap={8} align="center">
+                <Loader size="sm" />
+                <Text size="xs">Discovering services and characteristics…</Text>
+              </Group>
+            </Paper>
+          )}
+        </div>
+      )}
 
       {error && (
         <div
@@ -129,45 +94,115 @@ export const BleSection = ({
         </div>
       )}
 
-      <div>
-        <div className="mb-1 font-semibold text-[11px] opacity-80">Devices</div>
-        <div className="space-y-1 max-h-56 overflow-auto pr-1">
-          {devices.map((d) => {
-            const selected = selectedDevice === d.id;
-            return (
-              <button
-                key={d.id}
-                onClick={() => onSelectDevice && onSelectDevice(d.id)}
-                className={`w-full text-left px-2 py-1 rounded border text-xs truncate ${
-                  selected
-                    ? "bg-blue-600 border-blue-500"
-                    : "border-gray-600 hover:border-gray-400"
-                }`}
-                title={`${d.localName || "(no name)"} RSSI:${d.rssi}`}
-              >
-                <div className="flex justify-between">
-                  <span>
-                    {d.localName || "(no name)"}{" "}
-                    <span className="opacity-50 text-[10px]">[{d.id}]</span>
-                  </span>
-                  <span className="opacity-60">{d.rssi}dBm</span>
-                </div>
-                {d.serviceUuids && d.serviceUuids.length > 0 && (
-                  <div className="opacity-40 text-[9px]">
-                    {d.serviceUuids.slice(0, 3).join(",")}
-                    {d.serviceUuids.length > 3 && "..."}
+      {!connected && (
+        <div>
+          <div className="mb-1 font-semibold text-[11px] opacity-80">Devices</div>
+          <div className="space-y-1 max-h-56 overflow-auto pr-1">
+            {devices.map((d) => {
+              const selected = selectedDevice === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => {
+                    onSelectDevice && onSelectDevice(d.id);
+                    selectDevice(d.id);
+                  }}
+                  className={`w-full text-left px-2 py-1 rounded border text-xs truncate ${
+                    selected
+                      ? "bg-blue-600 border-blue-500"
+                      : "border-gray-600 hover:border-gray-400"
+                  }`}
+                  title={`${d.localName || "(no name)"} RSSI:${d.rssi}`}
+                >
+                  <div className="flex justify-between">
+                    <span>
+                      {d.localName || "(no name)"}{" "}
+                      <span className="opacity-50 text-[10px]">[{d.id}]</span>
+                    </span>
+                    <span className="opacity-60">{d.rssi}dBm</span>
                   </div>
-                )}
-              </button>
-            );
-          })}
-          {!devices.length && (
-            <div className="opacity-50 text-[11px]">
-              {scanning ? "Scanning..." : "No devices"}
-            </div>
-          )}
+                  {d.serviceUuids && d.serviceUuids.length > 0 && (
+                    <div className="opacity-40 text-[9px]">
+                      {d.serviceUuids.slice(0, 3).join(",")}
+                      {d.serviceUuids.length > 3 && "..."}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+            {!devices.length && (
+              <div className="opacity-50 text-[11px]">
+                {scanning ? "Scanning..." : "No devices"}
+              </div>
+            )}
+          </div>
+          <div className="mt-2">
+            <Button onClick={() => connect(selectedDevice)} fullWidth disabled={!selectedDevice} variant="light">
+              Connect
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {services.length > 0 && (
+        <div>
+          <div className="mb-1 font-semibold text-[11px] opacity-80">Services</div>
+          <div>
+            <Stack gap="xs">
+              {services.map((s) => (
+                <Paper key={s.uuid} p="xs" withBorder>
+                  <Text size="xs" fw={600} mb={6}>
+                    {s.uuid}
+                  </Text>
+                  <Stack gap={6}>
+                    {(s.characteristics && s.characteristics.length ? s.characteristics : []).map((c) => {
+                      const props = new Set(c.properties || []);
+                      const canNotify = props.has("notify") || props.has("indicate");
+                      const canRead = props.has("read");
+                      const label = `${c.uuid}`;
+                      return (
+                        <Group key={`${s.uuid}:${c.uuid}`} justify="space-between" align="center">
+                          <Group gap={6}>
+                            {canNotify && <Badge size="xs" color="violet">notify</Badge>}
+                            {props.has("indicate") && <Badge size="xs" color="grape">indicate</Badge>}
+                            {props.has("write") && <Badge size="xs" color="green">write</Badge>}
+                            {props.has("writeWithoutResponse") && <Badge size="xs" color="teal">writeNR</Badge>}
+                            {canRead && <Badge size="xs" color="blue">read</Badge>}
+                            <Text size="xs" c="dimmed">{label}</Text>
+                          </Group>
+                          <Group gap={6}>
+                            {canNotify && (
+                              <Button
+                                size="xs"
+                                variant="light"
+                                onClick={() => onCreateTab && onCreateTab({ id: `watch:${s.uuid}:${c.uuid}` , label: `${c.uuid}` })}
+                              >
+                                Watch
+                              </Button>
+                            )}
+                            {canRead && (
+                              <Button
+                                size="xs"
+                                variant="light"
+                                onClick={() => onCreateTab && onCreateTab({ id: `read:${s.uuid}:${c.uuid}`, label: `Read ${c.uuid}` })}
+                              >
+                                Read
+                              </Button>
+                            )}
+                          </Group>
+                        </Group>
+                      );
+                    })}
+                  </Stack>
+                  {(!s.characteristics || s.characteristics.length === 0) && (
+                    <Text size="xs" c="dimmed">No characteristics found</Text>
+                  )}
+                </Paper>
+              ))}
+            </Stack>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

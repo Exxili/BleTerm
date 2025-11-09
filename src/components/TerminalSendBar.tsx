@@ -1,4 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  ActionIcon,
+  Button,
+  Collapse,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+  Paper,
+} from "@mantine/core";
+import { IconPlus, IconMinus, IconPlayerPlay, IconPlayerStop, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import type { ICharacteristic } from "../interfaces/ICharacteristic";
 
 interface SendRow {
@@ -9,6 +23,7 @@ interface SendRow {
   repeatCount: number;
   running: boolean;
   runningMode?: "hex" | "ascii";
+  expanded?: boolean;
 }
 
 export const TerminalSendBar = ({
@@ -34,6 +49,7 @@ export const TerminalSendBar = ({
       delayMs: 1000,
       repeatCount: 1,
       running: false,
+      expanded: false,
     },
   ]);
 
@@ -53,6 +69,7 @@ export const TerminalSendBar = ({
         delayMs: 1000,
         repeatCount: 1,
         running: false,
+        expanded: false,
       },
     ]);
   };
@@ -148,213 +165,172 @@ export const TerminalSendBar = ({
   const charOptions = writable;
 
   return (
-    <div
-      className={`flex flex-col gap-2 px-2 py-2 border-t text-xs ${
-        isDark ? "bg-gray-900 border-gray-700" : "bg-gray-100 border-gray-300"
-      }`}
-      style={{ WebkitAppRegion: "no-drag" }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="opacity-70">Send</div>
-        <button
-          onClick={handleAddRow}
-          disabled={!canAddMore}
-          className={`px-2 py-0.5 rounded text-[11px] ${
-            canAddMore
-              ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-gray-700/50 cursor-not-allowed"
-          }`}
-          title={canAddMore ? "Add another send bar" : "Maximum 4 send bars"}
-        >
-          + Add
-        </button>
-      </div>
-
-      {rows.map((row, idx) => {
-        const disabledBase = noDevice || charOptions.length === 0;
-        const baseInvalid = !row.characteristicId || !row.value.trim();
-        const asciiDisabled = disabledBase || baseInvalid || row.running;
-        const hexDisabled =
-          disabledBase ||
-          row.running ||
-          !row.value.trim() ||
-          !normalizeHex(row.value || "");
-
-        return (
-          <div key={row.id} className="flex flex-wrap items-center gap-2">
-            {idx > 0 ? (
-              <button
-                onClick={() => handleRemoveRow(row.id)}
-                disabled={row.running}
-                className={`px-2 py-1 rounded text-xs font-semibold ${
-                  row.running
-                    ? "bg-gray-700 opacity-50 cursor-not-allowed"
-                    : "bg-red-700 hover:bg-red-600"
-                }`}
-                title="Remove this send bar"
-              >
-                -
-              </button>
-            ) : (
-              <div className="w-6 flex justify-center opacity-40 text-[10px] select-none">
-                #
-              </div>
-            )}
-
-            <select
-              className={`w-30 px-2 py-1 rounded border bg-transparent ${
-                isDark
-                  ? "border-gray-600 text-gray-200"
-                  : "border-gray-400 text-gray-800"
-              }`}
-              value={row.characteristicId}
-              onChange={(e) =>
-                updateRow(row.id, { characteristicId: e.target.value })
-              }
-              disabled={disabledBase || row.running}
-              title={noDevice ? "Select a device first" : undefined}
-            >
-              <option value="">Write characteristic</option>
-              {charOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.uuid}
-                </option>
-              ))}
-            </select>
-
-            <input
-              className={`flex-1 min-w-[140px] px-2 py-1 rounded border bg-transparent font-mono ${
-                isDark
-                  ? "border-gray-600 text-green-300 placeholder-gray-500"
-                  : "border-gray-400 text-gray-800 placeholder-gray-500"
-              }`}
-              placeholder="Data (hex or ascii)..."
-              value={row.value}
-              onChange={(e) => updateRow(row.id, { value: e.target.value })}
-              disabled={row.running}
-            />
-
-            {/* Instant send buttons */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => sendImmediate(row, "hex")}
-                disabled={hexDisabled}
-                className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                  hexDisabled
-                    ? "bg-gray-600 cursor-not-allowed opacity-50"
-                    : "bg-purple-600 hover:bg-purple-500"
-                }`}
-                title="Send as raw hex bytes (pairs)"
-              >
-                Send Hex
-              </button>
-              <button
-                onClick={() => sendImmediate(row, "ascii")}
-                disabled={asciiDisabled}
-                className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                  asciiDisabled
-                    ? "bg-gray-600 cursor-not-allowed opacity-50"
-                    : "bg-green-600 hover:bg-green-500"
-                }`}
-                title="Send as ASCII text"
-              >
-                Send Ascii
-              </button>
-            </div>
-
-            {/* Timed controls for additional rows */}
-            {idx > 0 && (
-              <>
-                <div className="flex items-center gap-1">
-                  <label className="opacity-60 text-[10px]">Delay(ms)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={row.delayMs}
-                    onChange={(e) =>
-                      updateRow(row.id, {
-                        delayMs: Math.max(1, Number(e.target.value || 0)),
-                      })
-                    }
+    <Paper radius={0} p="xs" withBorder style={{ WebkitAppRegion: "no-drag" }} className="shrink-0">
+      <Group justify="space-between" mb={"xs"}>
+        <Text size="xs" c="dimmed">
+          Send
+        </Text>
+        <Tooltip label={canAddMore ? "Add another send bar" : "Maximum 4 send bars"}>
+          <ActionIcon onClick={handleAddRow} disabled={!canAddMore} color="blue" variant="light" aria-label="Add row" size="md">
+            <IconPlus size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Group>
+      <Stack gap="xs">
+        {rows.map((row, idx) => {
+          const disabledBase = noDevice || charOptions.length === 0;
+          const baseInvalid = !row.characteristicId || !row.value.trim();
+          const asciiDisabled = disabledBase || baseInvalid || row.running;
+          const hexDisabled =
+            disabledBase ||
+            row.running ||
+            !row.value.trim() ||
+            !normalizeHex(row.value || "");
+          return (
+            <Group key={row.id} wrap="wrap" gap="xs">
+              {idx > 0 ? (
+                <Tooltip label="Remove this send bar">
+                  <ActionIcon
+                    onClick={() => handleRemoveRow(row.id)}
                     disabled={row.running}
-                    className={`w-15 px-2 py-1 rounded border bg-transparent ${
-                      isDark
-                        ? "border-gray-600 text-gray-200"
-                        : "border-gray-400 text-gray-800"
-                    }`}
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  <label className="opacity-60 text-[10px]">Repeat</label>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={row.repeatCount}
-                    onChange={(e) =>
-                      updateRow(row.id, {
-                        repeatCount: Math.max(1, Number(e.target.value || 0)),
-                      })
-                    }
-                    disabled={row.running}
-                    className={`w-10 px-2 py-1 rounded border bg-transparent ${
-                      isDark
-                        ? "border-gray-600 text-gray-200"
-                        : "border-gray-400 text-gray-800"
-                    }`}
-                  />
-                </div>
-
-                {!row.running ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => startAuto(row, "hex")}
-                      disabled={
-                        hexDisabled || row.delayMs <= 0 || row.repeatCount <= 0
-                      }
-                      className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                        hexDisabled || row.delayMs <= 0 || row.repeatCount <= 0
-                          ? "bg-gray-600 cursor-not-allowed opacity-50"
-                          : "bg-indigo-600 hover:bg-indigo-500"
-                      }`}
-                      title="Start timed hex sending"
-                    >
-                      StartHex
-                    </button>
-                    <button
-                      onClick={() => startAuto(row, "ascii")}
-                      disabled={
-                        asciiDisabled ||
-                        row.delayMs <= 0 ||
-                        row.repeatCount <= 0
-                      }
-                      className={`px-2 py-1 rounded text-[11px] font-semibold ${
-                        asciiDisabled ||
-                        row.delayMs <= 0 ||
-                        row.repeatCount <= 0
-                          ? "bg-gray-600 cursor-not-allowed opacity-50"
-                          : "bg-blue-600 hover:bg-blue-500"
-                      }`}
-                      title="Start timed ASCII sending"
-                    >
-                      StartAscii
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => stopAuto(row)}
-                    className="px-3 py-1 rounded text-xs font-semibold bg-red-600 hover:bg-red-500"
-                    title={`Stop (${row.runningMode || ""})`}
+                    color="red"
+                    variant="light"
+                    size="md"
+                    aria-label="Remove row"
                   >
-                    Stop
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
+                    <IconMinus size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              ) : (
+                <ActionIcon size="md" variant="transparent" disabled aria-label="spacer" style={{ visibility: "hidden" }} />
+              )}
+
+              <Select
+                placeholder="Write characteristic"
+                size="xs"
+                data={charOptions.map((c) => ({ value: c.id, label: c.uuid }))}
+                value={row.characteristicId || null}
+                onChange={(v) => updateRow(row.id, { characteristicId: v || "" })}
+                disabled={disabledBase || row.running}
+                w={220}
+              />
+
+              <TextInput
+                placeholder="Data (hex or ascii)..."
+                size="xs"
+                value={row.value}
+                onChange={(e) => updateRow(row.id, { value: e.currentTarget.value })}
+                className="flex-1 min-w-[160px]"
+                disabled={row.running}
+              />
+
+              <Group gap={4}>
+                <Tooltip label="Send as raw hex bytes (pairs)">
+                  <Button size="xs" variant="filled" color="grape" onClick={() => sendImmediate(row, "hex")} disabled={hexDisabled}>
+                    Hex
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Send as ASCII text">
+                  <Button size="xs" variant="filled" color="green" onClick={() => sendImmediate(row, "ascii")} disabled={asciiDisabled}>
+                    Ascii
+                  </Button>
+                </Tooltip>
+              </Group>
+
+              {/* Advanced toggle for timed controls (only for extra rows) */}
+              {idx > 0 && (
+                <Tooltip label={row.expanded ? "Hide timed options" : "Show timed options"}>
+                  <ActionIcon
+                    size="md"
+                    variant="subtle"
+                    onClick={() => updateRow(row.id, { expanded: !row.expanded })}
+                    aria-label="Toggle advanced"
+                  >
+                    {row.expanded ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+                  </ActionIcon>
+                </Tooltip>
+              )}
+
+              {idx > 0 && (
+                <Collapse in={!!row.expanded} style={{ width: "100%" }}>
+                  <Group gap={8} mt={4} wrap="wrap" align="center">
+                    <Group gap={6} align="center">
+                      <Text size="xs" c="dimmed">
+                        Delay(ms)
+                      </Text>
+                      <NumberInput
+                        size="xs"
+                        min={1}
+                        step={1}
+                        value={row.delayMs}
+                        onChange={(v) =>
+                          updateRow(row.id, { delayMs: Math.max(1, Number(v || 0)) })
+                        }
+                        disabled={row.running}
+                        w={90}
+                      />
+                    </Group>
+                    <Group gap={6} align="center">
+                      <Text size="xs" c="dimmed">
+                        Repeat
+                      </Text>
+                      <NumberInput
+                        size="xs"
+                        min={1}
+                        step={1}
+                        value={row.repeatCount}
+                        onChange={(v) =>
+                          updateRow(row.id, { repeatCount: Math.max(1, Number(v || 0)) })
+                        }
+                        disabled={row.running}
+                        w={80}
+                      />
+                    </Group>
+
+                    {!row.running ? (
+                      <Group gap={4}>
+                        <Tooltip label="Start timed hex sending">
+                          <Button
+                            size="xs"
+                            leftSection={<IconPlayerPlay size={14} />}
+                            onClick={() => startAuto(row, "hex")}
+                            disabled={hexDisabled || row.delayMs <= 0 || row.repeatCount <= 0}
+                            color="indigo"
+                          >
+                            StartHex
+                          </Button>
+                        </Tooltip>
+                        <Tooltip label="Start timed ASCII sending">
+                          <Button
+                            size="xs"
+                            leftSection={<IconPlayerPlay size={14} />}
+                            onClick={() => startAuto(row, "ascii")}
+                            disabled={asciiDisabled || row.delayMs <= 0 || row.repeatCount <= 0}
+                            color="blue"
+                          >
+                            StartAscii
+                          </Button>
+                        </Tooltip>
+                      </Group>
+                    ) : (
+                      <Tooltip label={`Stop (${row.runningMode || ""})`}>
+                        <Button
+                          size="xs"
+                          color="red"
+                          leftSection={<IconPlayerStop size={14} />}
+                          onClick={() => stopAuto(row)}
+                        >
+                          Stop
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </Group>
+                </Collapse>
+              )}
+            </Group>
+          );
+        })}
+      </Stack>
+    </Paper>
   );
 };

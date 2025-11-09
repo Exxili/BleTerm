@@ -1,6 +1,7 @@
 import TitleBarFactory from "../components/TitleBarFactory";
 import FooterBar from "../components/FooterBar";
 import TerminalLayout from "./Terminal.layout";
+import { Box } from "@mantine/core";
 
 /**
  * MainLayout
@@ -9,13 +10,13 @@ import TerminalLayout from "./Terminal.layout";
  */
 const MainLayout = (): React.JSX.Element => {
   return (
-    <div className="w-full h-screen flex flex-col">
+    <Box className="w-full h-screen flex flex-col">
       <TitleBarFactory />
-      <div className="flex-1 overflow-hidden">
+      <Box className="flex-1 overflow-hidden">
         <TerminalLayout />
-      </div>
+      </Box>
       <FooterBar />
-    </div>
+    </Box>
   );
 };
 

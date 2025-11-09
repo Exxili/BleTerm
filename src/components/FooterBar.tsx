@@ -1,4 +1,5 @@
 import { useMantineColorScheme } from "@mantine/core";
+import { useBleStore } from "../state/useBleStore";
 
 /**
  * FooterBar
@@ -8,6 +9,7 @@ import { useMantineColorScheme } from "@mantine/core";
 const FooterBar = (): React.JSX.Element => {
   const { colorScheme } = useMantineColorScheme();
   const isDark = colorScheme === "dark";
+  const conn = useBleStore((s) => s.connected);
 
   return (
     <div
@@ -22,11 +24,28 @@ const FooterBar = (): React.JSX.Element => {
       `}
     >
       <div className="flex items-center gap-2">
-        <span>Ready</span>
+        <span>{conn ? "Connected" : "Ready"}</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        <span>Connected</span>
+      <div className="flex items-center gap-2 truncate">
+        {conn ? (
+          <>
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 9999,
+                backgroundColor: "#2f9e44",
+                display: "inline-block",
+              }}
+            />
+            <span className="truncate max-w-64" title={conn.name || conn.id}>
+              {conn.name || conn.id}
+            </span>
+          </>
+        ) : (
+          <span className="opacity-70">Disconnected</span>
+        )}
       </div>
     </div>
   );

@@ -21,6 +21,12 @@ export const BLEChannels = {
   evtError: "ble:error",
 
   connect: "ble:connect",
+  disconnect: "ble:disconnect",
+  services: "ble:services",
+  read: "ble:read",
+  notifyStart: "ble:notify:start",
+  notifyStop: "ble:notify:stop",
+  evtNotifyData: "ble:notify:data",
   evtConnected: "ble:connected",
   evtDisconnected: "ble:disconnected",
 } as const;
@@ -32,6 +38,42 @@ export const BLEChannels = {
  */
 let scanning = false;
 const seenPeripherals = new Set<string>();
+// Track active notification subscriptions so we don't duplicate listeners
+const activeNotifications = new Map<
+  string,
+  { char: any; onData: (data: Buffer, isNotification: boolean) => void }
+>();
+// Cache discovered characteristic objects by peripheral and "service:char" key
+const charCache = new Map<string, Map<string, any>>();
+// De-dup notifications arriving multiple times within a tiny window
+const lastNotifyMap = new Map<string, { hex: string; ts: number }>();
+
+const cleanupPeripheral = async (peripheralId: string) => {
+  // Stop all active notifications for this peripheral
+  const keys = Array.from(activeNotifications.keys()).filter((k) => k.startsWith(peripheralId + ":"));
+  const p = getDiscoveredPeripheral(peripheralId) as any | undefined;
+  const isConnected = p?.state === "connected";
+  for (const key of keys) {
+    const entry = activeNotifications.get(key);
+    if (!entry) continue;
+    // Always detach our specific data handler first
+    try {
+      entry.char?.off?.("data", entry.onData);
+    } catch {}
+    // Only attempt to unsubscribe if still connected to avoid noisy errors from noble
+    if (isConnected) {
+      try {
+        await ((entry.char as any).unsubscribeAsync?.() || promisifyIfNeeded<void>(entry.char.unsubscribe, entry.char));
+      } catch {}
+    }
+    activeNotifications.delete(key);
+  }
+  charCache.delete(peripheralId);
+  // Clear last notify cache for this peripheral
+  Array.from(lastNotifyMap.keys()).forEach((k) => {
+    if (k.startsWith(peripheralId + ":")) lastNotifyMap.delete(k);
+  });
+};
 
 /**
  * sendToRenderer
@@ -79,6 +121,173 @@ const getDiscoveredPeripheral = (id: string): Peripheral | undefined => {
     | Record<string, Peripheral>
     | undefined;
   return map?.[id];
+};
+
+/**
+ * listServicesAndCharacteristics
+ * @description Discovers services and characteristics for a connected peripheral.
+ */
+const listServicesAndCharacteristics = async (
+  peripheralId: string
+): Promise<
+  Array<{
+    uuid: string;
+    characteristics: Array<{
+      uuid: string;
+      properties: string[];
+    }>;
+  }>
+> => {
+  const p = getDiscoveredPeripheral(peripheralId);
+  if (!p) throw new Error(`Peripheral ${peripheralId} not found`);
+  // Discover services explicitly and then fetch each service's characteristics.
+  const services: any[] =
+    (await (p as any).discoverServicesAsync?.([])) ||
+    (await promisifyIfNeeded<any[]>(p.discoverServices, p, []));
+  const out: Array<{
+    uuid: string;
+    characteristics: Array<{ uuid: string; properties: string[] }>;
+  }> = [];
+  for (const s of services) {
+    let chars: any[] =
+      (await (s as any).discoverCharacteristicsAsync?.([])) ||
+      (await promisifyIfNeeded<any[]>(s.discoverCharacteristics, s, []));
+    // Fallback: some stacks require using peripheral.discoverSomeServicesAndCharacteristics
+    if (!chars || chars.length === 0) {
+      try {
+        await ((p as any).discoverSomeServicesAndCharacteristicsAsync?.([s.uuid], []) ||
+          promisifyIfNeeded<any[]>(p.discoverSomeServicesAndCharacteristics, p, [s.uuid], []));
+        const svc = ((p as any).services || []).find((it: any) => it.uuid === s.uuid);
+        if (svc) chars = (svc as any).characteristics || [];
+      } catch {
+        // ignore fallback errors
+      }
+    }
+    // populate cache map
+    let periphMap = charCache.get(peripheralId);
+    if (!periphMap) {
+      periphMap = new Map<string, any>();
+      charCache.set(peripheralId, periphMap);
+    }
+
+    out.push({
+      uuid: s.uuid,
+      characteristics: (chars || []).map((c: any) => {
+        const key = `${norm(s.uuid)}:${norm(c.uuid)}`;
+        periphMap!.set(key, c);
+        return {
+          uuid: norm(c.uuid),
+          properties: c.properties || [],
+        };
+      }),
+    });
+  }
+  return out;
+};
+
+const readCharacteristic = async (
+  peripheralId: string,
+  serviceUuid: string,
+  charUuid: string
+): Promise<string> => {
+  const p = getDiscoveredPeripheral(peripheralId);
+  if (!p) throw new Error(`Peripheral ${peripheralId} not found`);
+  const services: any[] = (await (p as any).discoverServicesAsync?.([serviceUuid]))
+    || (await promisifyIfNeeded<any[]>(p.discoverServices, p, [serviceUuid]));
+  const s = services[0];
+  if (!s) throw new Error(`Service ${serviceUuid} not found`);
+  const chars: any[] = (await (s as any).discoverCharacteristicsAsync?.([charUuid]))
+    || (await promisifyIfNeeded<any[]>(s.discoverCharacteristics, s, [charUuid]));
+  const c = chars[0];
+  if (!c) throw new Error(`Characteristic ${charUuid} not found`);
+  const buf: Buffer = (await (c as any).readAsync?.()) || (await promisifyIfNeeded<Buffer>(c.read, c));
+  return buf.toString("hex");
+};
+
+const startNotify = async (
+  peripheralId: string,
+  serviceUuid: string,
+  charUuid: string
+): Promise<void> => {
+  serviceUuid = norm(serviceUuid);
+  charUuid = norm(charUuid);
+  const key = `${peripheralId}:${serviceUuid}:${charUuid}`;
+  if (activeNotifications.has(key)) {
+    return; // already subscribed
+  }
+  // Try cache first
+  let c = charCache.get(peripheralId)?.get(`${serviceUuid}:${charUuid}`);
+  if (!c) {
+    const p = getDiscoveredPeripheral(peripheralId);
+    if (!p) throw new Error(`Peripheral ${peripheralId} not found`);
+    const services: any[] = (await (p as any).discoverServicesAsync?.([serviceUuid]))
+      || (await promisifyIfNeeded<any[]>(p.discoverServices, p, [serviceUuid]));
+    const s = services[0];
+    if (!s) throw new Error(`Service ${serviceUuid} not found`);
+    const chars: any[] = (await (s as any).discoverCharacteristicsAsync?.([charUuid]))
+      || (await promisifyIfNeeded<any[]>(s.discoverCharacteristics, s, [charUuid]));
+    c = chars[0];
+    // update cache for this one
+    if (c) {
+      if (!charCache.get(peripheralId)) charCache.set(peripheralId, new Map());
+      charCache.get(peripheralId)!.set(`${serviceUuid}:${charUuid}`, c);
+    }
+  }
+  if (!c) throw new Error(`Characteristic ${charUuid} not found`);
+  const onData = (data: Buffer, isNotification: boolean) => {
+    if (!isNotification) return;
+    const hex = data.toString("hex");
+    const lkey = `${peripheralId}:${serviceUuid}:${charUuid}`;
+    const prev = lastNotifyMap.get(lkey);
+    const now = Date.now();
+    if (prev && prev.hex === hex && now - prev.ts < 10) {
+      return; // drop tight duplicates from stack quirks
+    }
+    lastNotifyMap.set(lkey, { hex, ts: now });
+    sendToRenderer(BLEChannels.evtNotifyData, {
+      peripheralId,
+      serviceUuid,
+      charUuid,
+      data: hex,
+    });
+  };
+  c.on("data", onData);
+  await ((c as any).subscribeAsync?.() || promisifyIfNeeded<void>(c.subscribe, c));
+  activeNotifications.set(key, { char: c, onData });
+};
+
+const stopNotify = async (
+  peripheralId: string,
+  serviceUuid: string,
+  charUuid: string
+): Promise<void> => {
+  serviceUuid = norm(serviceUuid);
+  charUuid = norm(charUuid);
+  const key = `${peripheralId}:${serviceUuid}:${charUuid}`;
+  const existing = activeNotifications.get(key);
+  let c: any = existing?.char;
+  if (!c) {
+    // Fallback: locate characteristic if not cached
+    const p = getDiscoveredPeripheral(peripheralId);
+    if (!p) throw new Error(`Peripheral ${peripheralId} not found`);
+    const services: any[] = (await (p as any).discoverServicesAsync?.([serviceUuid]))
+      || (await promisifyIfNeeded<any[]>(p.discoverServices, p, [serviceUuid]));
+    const s = services[0];
+    if (!s) throw new Error(`Service ${serviceUuid} not found`);
+    const chars: any[] = (await (s as any).discoverCharacteristicsAsync?.([charUuid]))
+      || (await promisifyIfNeeded<any[]>(s.discoverCharacteristics, s, [charUuid]));
+    c = chars[0];
+  }
+  if (!c) return;
+  try {
+    await ((c as any).unsubscribeAsync?.() || promisifyIfNeeded<void>(c.unsubscribe, c));
+  } catch {}
+  try {
+    const onData = existing?.onData;
+    if (onData) (c as any).off?.("data", onData);
+    else c.removeAllListeners?.("data");
+  } catch {}
+  activeNotifications.delete(key);
 };
 
 /**
@@ -174,11 +383,13 @@ const handleConnect = async (
       );
     }
 
-    // Connect (supports both connectAsync and callback forms)
-    if ((p as any).connectAsync) {
-      await (p as any).connectAsync();
-    } else {
-      await promisifyIfNeeded<void>(p.connect, p);
+    // Connect only if not already connected
+    if ((p as any).state !== "connected") {
+      if ((p as any).connectAsync) {
+        await (p as any).connectAsync();
+      } else {
+        await promisifyIfNeeded<void>(p.connect, p);
+      }
     }
 
     // notify renderer
@@ -186,8 +397,9 @@ const handleConnect = async (
     sendToRenderer(BLEChannels.evtConnected, payload);
 
     // also forward future remote disconnects
-    const onDisc = () => {
+    const onDisc = async () => {
       p.removeListener("disconnect", onDisc);
+      await cleanupPeripheral(p.id);
       sendToRenderer(BLEChannels.evtDisconnected, {
         id: p.id,
         reason: "remote",
@@ -244,11 +456,44 @@ const registerIpcHandlers = (): void => {
     await startScan();
   });
   ipcMain.handle(BLEChannels.scanStop, async () => {
-    // await stopScan();
+    await stopScan();
   });
 
   // ✅ NEW:
   ipcMain.handle(BLEChannels.connect, handleConnect);
+  ipcMain.handle(BLEChannels.disconnect, handleDisconnect);
+  ipcMain.handle(BLEChannels.services, async (_e, id: string) => {
+    return listServicesAndCharacteristics(id);
+  });
+  ipcMain.handle(BLEChannels.read, async (_e, id: string, s: string, c: string) => {
+    return readCharacteristic(id, s, c);
+  });
+  ipcMain.handle(BLEChannels.notifyStart, async (_e, id: string, s: string, c: string) => {
+    return startNotify(id, s, c);
+  });
+  ipcMain.handle(BLEChannels.notifyStop, async (_e, id: string, s: string, c: string) => {
+    return stopNotify(id, s, c);
+  });
+};
+
+const handleDisconnect = async (
+  _e: Electron.IpcMainInvokeEvent,
+  peripheralId: string
+) => {
+  const p = getDiscoveredPeripheral(peripheralId);
+  if (!p) return;
+  try {
+    if ((p as any).state === "connected") {
+      if ((p as any).disconnectAsync) {
+        await (p as any).disconnectAsync();
+      } else {
+        await promisifyIfNeeded<void>(p.disconnect, p);
+      }
+    }
+  } finally {
+    await cleanupPeripheral(peripheralId);
+    sendToRenderer(BLEChannels.evtDisconnected, { id: peripheralId, reason: "local" });
+  }
 };
 
 /**
@@ -256,7 +501,17 @@ const registerIpcHandlers = (): void => {
  * @description Removes IPC handlers.
  */
 const unregisterIpcHandlers = (): void => {
-  [BLEChannels.scanStart, BLEChannels.scanStop].forEach((ch) => {
+  [
+    BLEChannels.scanStart,
+    BLEChannels.scanStop,
+    BLEChannels.connect,
+    BLEChannels.disconnect,
+    BLEChannels.services,
+    BLEChannels.read,
+    BLEChannels.notifyStart,
+    BLEChannels.notifyStop,
+    BLEChannels.evtNotifyData,
+  ].forEach((ch) => {
     if (ipcMain.listenerCount(ch)) ipcMain.removeHandler(ch);
   });
 };
@@ -275,7 +530,22 @@ export const SetupBluetoothServices = (): void => {
  * @description Tears down BLE service.
  */
 export const DestroyBluetoothServices = (): void => {
-  stopScan();
-  DettachNobleEvents();
-  unregisterIpcHandlers();
+  // Best-effort disconnect all connected peripherals
+  try {
+    const map = (noble as any)._peripherals as Record<string, Peripheral> | undefined;
+    if (map) {
+      const list = Object.values(map);
+      list.forEach((p) => {
+        if ((p as any).state === "connected") {
+          try {
+            (p as any).disconnect?.();
+          } catch {}
+        }
+      });
+    }
+  } catch {}
+  try { stopScan(); } catch {}
+  try { DettachNobleEvents(); } catch {}
+  try { unregisterIpcHandlers(); } catch {}
 };
+const norm = (u: string) => (u || "").toLowerCase();

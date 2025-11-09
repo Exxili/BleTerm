@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { GetMainWindow, SetMainWindow } from "./state";
 import { GenerateMainWindowConfig } from "./config/MainWindowConfig";
-import { SetupServices } from "./services";
+import { SetupServices, DestroyServices } from "./services";
 
 // export const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -108,9 +108,15 @@ const InitializeMainWindow = (): void => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    try { DestroyServices(); } catch {}
     app.quit();
     SetMainWindow(null);
   }
+});
+
+// Ensure services tear down on app quit from any path (close button, Ctrl+C, etc.)
+app.on("before-quit", () => {
+  try { DestroyServices(); } catch {}
 });
 
 app.on("activate", () => {

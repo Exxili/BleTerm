@@ -3,12 +3,14 @@ export const Collapsible = ({
   open,
   onToggle,
   isDark,
+  right,
   children,
 }: {
   title: string;
   open: boolean;
   onToggle: () => void;
   isDark: boolean;
+  right?: React.ReactNode;
   children: React.ReactNode;
 }) => (
   <div className="border-b border-gray-700/40">
@@ -20,9 +22,17 @@ export const Collapsible = ({
           : "bg-gray-200 hover:bg-gray-300 text-gray-800"
       }`}
     >
-      <span className="uppercase text-[10px]">{title}</span>
+      <span className="uppercase text-[10px] flex items-center gap-2">
+        {title}
+        {right && <span className="normal-case font-normal opacity-80">{right}</span>}
+      </span>
       <span className="text-[11px]">{open ? "▾" : "▸"}</span>
     </button>
-    {open && <div className="px-3 pb-4 pt-3 text-xs space-y-4">{children}</div>}
+    <div
+      className="px-3 pb-4 pt-3 text-xs space-y-4"
+      style={{ display: open ? "block" : "none" }}
+    >
+      {children}
+    </div>
   </div>
 );
