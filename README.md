@@ -1,4 +1,4 @@
-# BleTerm
+# BleTerm - In Development
 
 An opinionated desktop app (Electron + React + Vite) for talking to **embedded devices over Bluetooth Low Energy (BLE)**.  
 It focuses on a “terminal-like” workflow: **send text** to a write characteristic and **listen** to notify/indicate characteristics.
