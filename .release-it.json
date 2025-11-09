@@ -12,10 +12,19 @@
   "github": {
     "release": true,
     "draft": true,
-    "tokenRef": "GITHUB_TOKEN"
+    "tokenRef": "GITHUB_TOKEN",
+    "assets": [
+      "release/${version}/*.exe",
+      "release/${version}/*.msi",
+      "release/${version}/*.dmg",
+      "release/${version}/*.AppImage",
+      "release/${version}/*.zip"
+    ]
   },
   "npm": {
     "publish": false
+  },
+  "hooks": {
+    "before:github.release": "npm run build"
   }
 }
-
