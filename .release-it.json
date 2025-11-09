@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/release-it/release-it/main/schema/release-it.json",
+  "git": {
+    "requireCleanWorkingDir": true,
+    "commit": true,
+    "commitMessage": "chore(release): ${version}",
+    "tag": true,
+    "tagName": "v${version}",
+    "tagAnnotation": "Release v${version}",
+    "push": true
+  },
+  "github": {
+    "release": true,
+    "draft": true,
+    "tokenRef": "GITHUB_TOKEN"
+  },
+  "npm": {
+    "publish": false
+  }
+}
+

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run",
+    "release:github": "release-it --github.release --github.draft"
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-26",
@@ -31,6 +34,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "release-it": "^19.0.6",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",
