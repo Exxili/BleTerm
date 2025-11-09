@@ -2,9 +2,9 @@ import "./App.css";
 import MainLayout from "./layout/Main.layout";
 
 /**
- * App
- * @description The main application component.
- * @returns A React component representing the main application.
+ * @component App
+ * @description Root component that renders the main layout.
+ * @returns {JSX.Element}
  */
 const App = () => {
   return (

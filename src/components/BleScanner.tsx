@@ -1,11 +1,21 @@
 import { useState, useEffect } from "react";
 
+/**
+ * @typedef Device
+ * @description Minimal device information for the demo scanner.
+ */
 interface Device {
   id: string;
   name: string;
   rssi?: number;
 }
 
+/**
+ * @component BleScanner
+ * @description Demo BLE scanner UI that listens for IPC events and renders a
+ * list of discovered devices.
+ * @returns {JSX.Element}
+ */
 function BleScanner(): React.JSX.Element {
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);

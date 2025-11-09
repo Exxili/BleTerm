@@ -2,9 +2,9 @@ import { useMantineColorScheme } from "@mantine/core";
 import { useBleStore } from "../state/useBleStore";
 
 /**
- * FooterBar
- * @description A component representing the footer bar of the application.
- * @returns A React component representing the footer bar.
+ * @component FooterBar
+ * @description Compact application footer showing connection status and name/id.
+ * @returns {JSX.Element}
  */
 const FooterBar = (): React.JSX.Element => {
   const { colorScheme } = useMantineColorScheme();

@@ -9,13 +9,31 @@ interface Props {
   onWritableChange?: (chars: { id: string; uuid: string }[]) => void;
   onCreateTab?: (tab: { id: string; label: string }) => void;
 }
-export const BleSection = ({
+/**
+ * @component BleSection
+ * @description Renders connect/scan controls and discovered services/characteristics,
+ * backed by the shared BLE store. Emits writable characteristics upward for
+ * terminal send controls.
+ * @param {object} props React props
+ * @param {boolean} props.isDark Whether dark theme is active
+ * @param {(id: string) => void} [props.onSelectDevice] Callback for device selection
+ * @param {string} [props.selectedDevice] Current device id selection
+ * @param {(chars: { id: string; uuid: string }[]) => void} [props.onWritableChange] Emits writable char list
+ * @param {(tab: { id: string; label: string }) => void} [props.onCreateTab] Opens read/watch tabs
+ * @returns {JSX.Element}
+ */
+ export const BleSection = ({
   isDark,
   onSelectDevice,
   selectedDevice,
   onWritableChange,
   onCreateTab,
 }: Props) => {
+  /**
+   * BleSection
+   * Renders connect/scan controls and discovered services/characteristics,
+   * backed by the shared BLE store. Emits writable characteristics upward.
+   */
   // Zustand-backed state and actions
   const scanning = useBleStore((s) => s.scanning);
   const devices = useBleStore((s) => s.devices);

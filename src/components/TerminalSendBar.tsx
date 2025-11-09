@@ -26,6 +26,16 @@ interface SendRow {
   expanded?: boolean;
 }
 
+/**
+ * @component TerminalSendBar
+ * @description Provides single‑shot and timed sending controls for writable
+ * characteristics, including simple validation and per‑row lifecycle.
+ * @param {object} props React props
+ * @param {ICharacteristic[]} props.writable List of write‑capable characteristics
+ * @param {string} [props.selectedDevice] Active device id (if any)
+ * @param {(deviceId: string|undefined, characteristicId: string, value: string) => void} props.onSend Send handler
+ * @returns {JSX.Element}
+ */
 export const TerminalSendBar = ({
   writable,
   selectedDevice,
@@ -56,6 +66,11 @@ export const TerminalSendBar = ({
 
   const canAddMore = rows.length < 4;
 
+  /**
+   * @function handleAddRow
+   * @description Adds another send row (limited to 4 rows).
+   * @returns {void}
+   */
   const handleAddRow = () => {
     if (!canAddMore) return;
     setRows((prev) => [
@@ -72,6 +87,12 @@ export const TerminalSendBar = ({
     ]);
   };
 
+  /**
+   * @function handleRemoveRow
+   * @description Stops timers for the row and removes it.
+   * @param {string} id Row id
+   * @returns {void}
+   */
   const handleRemoveRow = (id: string) => {
     const t = timersRef.current.get(id);
     if (t) {
@@ -82,11 +103,24 @@ export const TerminalSendBar = ({
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
+  /**
+   * @function updateRow
+   * @description Shallow merges a patch into a send row by id.
+   * @param {string} id Row id
+   * @param {Partial<SendRow>} patch Partial row fields to update
+   * @returns {void}
+   */
   const updateRow = (id: string, patch: Partial<SendRow>) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   };
 
   // Helpers for encoding (currently only basic sanitization for hex)
+  /**
+   * @function normalizeHex
+   * @description Sanitizes a hex input string and validates byte pairs.
+   * @param {string} input Raw input
+   * @returns {string|null}
+   */
   const normalizeHex = (input: string): string | null => {
     const cleaned = input
       .replace(/0x/gi, "")
@@ -98,6 +132,13 @@ export const TerminalSendBar = ({
     return cleaned;
   };
 
+  /**
+   * @function sendImmediate
+   * @description Sends the row value once in the selected encoding mode.
+   * @param {SendRow} row Row to send
+   * @param {('hex'|'ascii')} mode Encoding mode
+   * @returns {void}
+   */
   const sendImmediate = (row: SendRow, mode: "hex" | "ascii") => {
     if (!row.characteristicId) return;
     const raw = row.value.trim();
@@ -111,6 +152,14 @@ export const TerminalSendBar = ({
     }
   };
 
+  /**
+   * @function startAuto
+   * @description Begins a timed send loop for the row with a fixed delay and
+   * repeat count.
+   * @param {SendRow} row Row to run
+   * @param {('hex'|'ascii')} mode Encoding mode
+   * @returns {void}
+   */
   const startAuto = (row: SendRow, mode: "hex" | "ascii") => {
     if (row.running) return;
     if (!row.characteristicId) return;
@@ -141,6 +190,12 @@ export const TerminalSendBar = ({
     updateRow(row.id, { running: true, runningMode: mode });
   };
 
+  /**
+   * @function stopAuto
+   * @description Stops a running timed send for the provided row.
+   * @param {SendRow} row Row to stop
+   * @returns {void}
+   */
   const stopAuto = (row: SendRow) => {
     const t = timersRef.current.get(row.id);
     if (t) {

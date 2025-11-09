@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld("windowcontrol", WindowControlApi);
 /**
  * ----------------------------
  * Bluetooth API
+ * @description Exposes a typed, minimal IPC bridge for BLE operations to the renderer.
  * ----------------------------
  */
 

@@ -1,5 +1,6 @@
 import { useMantineColorScheme } from "@mantine/core";
 import { IconMinus, IconSquare, IconX } from "@tabler/icons-react";
+import pkg from "../../package.json";
 
 /**
  * WindowsTitleBar
@@ -15,6 +16,7 @@ export const WindowsTitleBar: React.FC = () => {
    * -----------------------------
    */
   const isDark = colorScheme === "dark";
+  const version = pkg.version as string;
 
   /**
    * -----------------------------
@@ -63,7 +65,15 @@ export const WindowsTitleBar: React.FC = () => {
         <span className="text-sm font-normal">BleTerm</span>
       </div>
 
-      <div className="flex undraggable">
+      <div className="flex items-center gap-1 undraggable">
+        <span
+          className={`px-2 text-xs select-none ${
+            isDark ? "text-gray-400" : "text-gray-600"
+          }`}
+          title={`BleTerm v${version}`}
+        >
+          v{version}
+        </span>
         <button
           onClick={handleMinimize}
           className={`

@@ -1,3 +1,16 @@
+/**
+ * @component Collapsible
+ * @description Simple collapsible container with a header row and optional
+ * right‑side inline content. Keeps children mounted for state persistence.
+ * @param {object} props
+ * @param {string} props.title Section title
+ * @param {boolean} props.open Whether the section is expanded
+ * @param {() => void} props.onToggle Toggle callback
+ * @param {boolean} props.isDark Whether dark theme is active
+ * @param {React.ReactNode} [props.right] Optional right‑side content in header
+ * @param {React.ReactNode} props.children Content of the section
+ * @returns {JSX.Element}
+ */
 export const Collapsible = ({
   title,
   open,

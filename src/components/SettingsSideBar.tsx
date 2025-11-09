@@ -5,6 +5,18 @@ import { useState } from "react";
 import { useBleStore } from "../state/useBleStore";
 import UISettingsSection from "./UISettingsSection";
 
+/**
+ * @component SettingsSideBar
+ * @description Collapsible sidebar hosting BLE controls, file capture settings,
+ * and UI options.
+ * @param {object} props React props
+ * @param {boolean} props.isDark Whether dark theme is active
+ * @param {(id: string) => void} [props.onSelectDevice] Callback when a device is picked
+ * @param {string} [props.selectedDevice] Currently selected device id
+ * @param {(chars: { id: string; uuid: string }[]) => void} [props.onWritableChange] Emits writable chars
+ * @param {(tab: { id: string; label: string }) => void} [props.onCreateTab] Request to open a watch/read tab
+ * @returns {JSX.Element}
+ */
 const SettingsSideBar = ({
   isDark,
   onSelectDevice,

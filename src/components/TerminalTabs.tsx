@@ -2,6 +2,21 @@ import { Tabs, Paper, Text, Box, Group } from "@mantine/core";
 import { useEffect, useState } from "react";
 import type { ITerminalTab } from "../interfaces/ITerminalTab";
 
+/**
+ * @component TerminalTabs
+ * @description Displays terminal tabs and a compact activity indicator that
+ * flashes green briefly on incoming data, then returns to red before hiding
+ * after a short timeout.
+ * @param {object} props React props
+ * @param {boolean} props.isDark Whether the UI is in dark mode
+ * @param {ITerminalTab[]} props.tabs List of tabs to render
+ * @param {string} props.activeTab Currently selected tab id
+ * @param {(id: string) => void} props.onSelectTab Callback when a tab is selected
+ * @param {{ enabled: boolean; format: string; path: string }} props.capture Capture settings summary
+ * @param {string[]} props.content Lines to render in the active tab content area
+ * @param {Record<string, { ts: number; count: number }>} [props.activity] Recent activity timestamps by tab id
+ * @returns {JSX.Element}
+ */
 export const TerminalTabs = ({
   isDark,
   tabs,
