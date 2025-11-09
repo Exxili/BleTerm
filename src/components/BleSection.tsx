@@ -87,7 +87,17 @@ interface Props {
           </Paper>
           <Group grow>
             <Button variant="light" onClick={refreshServices}>Refresh services</Button>
-            <Button color="red" variant="light" onClick={() => disconnect(connected?.id)}>Disconnect</Button>
+            <Button
+              color="red"
+              variant="light"
+              onClick={async () => {
+                await disconnect(connected?.id);
+                // Also clear any selection held by parent props
+                if (onSelectDevice) onSelectDevice("");
+              }}
+            >
+              Disconnect
+            </Button>
           </Group>
           {discovering && (
             <Paper withBorder p="sm">

@@ -113,7 +113,7 @@ const ensureBridgeListeners = (set: StoreApi<BleState>["setState"]) => {
     const payload = d as { id?: string };
     set((st: BleState) => {
       if (!st.connected || st.connected.id !== payload?.id) return {};
-      return { connected: null, services: [], discovering: false };
+      return { connected: null, services: [], discovering: false, selectedDevice: null, devices: [] };
     });
   };
 
@@ -199,7 +199,7 @@ export const useBleStore = create<BleState>((set, get) => ({
     const cur = id ?? get().connected?.id;
     if (!cur) return;
     await bridge.disconnect(cur);
-    set({ connected: null, services: [], discovering: false });
+    set({ connected: null, services: [], discovering: false, selectedDevice: null, devices: [] });
   },
 
   /** @description Fetch and populate services/characteristics for the current device. */

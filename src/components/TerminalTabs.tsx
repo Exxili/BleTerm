@@ -1,4 +1,4 @@
-import { Tabs, Paper, Text, Box, Group } from "@mantine/core";
+import { Tabs, Paper, Text, Box, Group, ThemeIcon, Stack, ActionIcon } from "@mantine/core";
 import { useEffect, useState } from "react";
 import type { ITerminalTab } from "../interfaces/ITerminalTab";
 
@@ -22,6 +22,8 @@ export const TerminalTabs = ({
   tabs,
   activeTab,
   onSelectTab,
+  onReorder,
+  onCloseTab,
   capture,
   content,
   activity,
@@ -30,6 +32,8 @@ export const TerminalTabs = ({
   tabs: ITerminalTab[];
   activeTab: string;
   onSelectTab: (id: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  onCloseTab: (id: string) => void;
   capture: { enabled: boolean; format: string; path: string };
   content: string[];
   activity?: Record<string, { ts: number; count: number }>;
@@ -57,9 +61,34 @@ export const TerminalTabs = ({
   return (
     <Box style={{ WebkitAppRegion: "no-drag" }} className="h-full min-h-0 grid grid-rows-[auto_1fr]">
       <Tabs value={activeTab} onChange={(v) => v && onSelectTab(v)}>
+        {tabs.length > 0 && (
         <Tabs.List>
-          {tabs.map((t) => (
-            <Tabs.Tab key={t.id} value={t.id}>
+          {tabs.map((t, index) => (
+            <Tabs.Tab
+              key={t.id}
+              value={t.id}
+              draggable
+              onDragStart={(e) => {
+                try {
+                  e.dataTransfer.setData("text/plain", String(index));
+                } catch {}
+                // For Firefox
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("text/plain");
+                const from = Number.parseInt(data, 10);
+                const to = index;
+                if (!Number.isNaN(from) && from !== to) {
+                  onReorder(from, to);
+                }
+              }}
+            >
               <Group gap={6} align="center">
                 <span>{t.label}</span>
                 {(() => {
@@ -79,42 +108,93 @@ export const TerminalTabs = ({
                     />
                   );
                 })()}
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  color="gray"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onCloseTab(t.id);
+                  }}
+                  title="Close tab"
+                >
+                  ×
+                </ActionIcon>
               </Group>
             </Tabs.Tab>
           ))}
         </Tabs.List>
+        )}
       </Tabs>
 
       <div
         className="min-h-0 overflow-auto"
         style={{ backgroundColor: isDark ? "#000" : "#fff" }}
       >
-        <Paper
-          radius="0"
-          p="xs"
-          className="font-mono text-xs"
-          c="green.5"
-          style={{ minHeight: "100%", width: "100%", backgroundColor: isDark ? "#000" : "#fff" }}
-        >
-          <Text size="xs" c="dimmed" mb="xs">
-            Tab: {activeTab} | Capture: {capture.enabled ? "on" : "off"} ({capture.format}) → {capture.path}
-          </Text>
-          <div>
-            {content && content.length ? (
-              content.map((line, idx) => (
-                <pre key={idx} className="m-0">
-                  {line}
-                </pre>
-              ))
-            ) : (
-              <Text size="xs">
-                Placeholder terminal output...
-                <br />
-                Future streaming data will appear here.
-              </Text>
-            )}
+        {tabs.length === 0 ? (
+          <div className="h-full w-full grid place-items-center p-6" style={{ minHeight: "100%" }}>
+            <Paper
+              withBorder
+              shadow="sm"
+              p="lg"
+              radius="md"
+              style={{
+                maxWidth: 680,
+                width: "100%",
+                backgroundColor: isDark ? "#0b0b0b" : "#fafafa",
+                borderColor: isDark ? "#2a2a2a" : "#e6e6e6",
+              }}
+            >
+              <Stack gap="xs">
+                <Group gap={10} align="center">
+                  <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: "blue", to: "grape" }}>
+                    📡
+                  </ThemeIcon>
+                  <Text size="sm" fw={700}>Welcome</Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  Scan for devices in the BLE sidebar, connect to a device, then choose a characteristic and open a Watch tab to stream notifications. You can also Read a characteristic for a one-time value.
+                </Text>
+                <ul className="list-disc pl-5 text-xs opacity-80">
+                  <li>Use Scan to discover nearby peripherals</li>
+                  <li>Connect and view services/characteristics</li>
+                  <li>Open <span className="font-semibold">Watch</span> to monitor notifications or <span className="font-semibold">Read</span> for a one-time fetch</li>
+                </ul>
+                <Text size="xs" c="dimmed" style={{ marginTop: 6 }}>
+                  Tip: Drag tabs to reorder once created.
+                </Text>
+              </Stack>
+            </Paper>
           </div>
-        </Paper>
+        ) : (
+          <Paper
+            radius="0"
+            p="xs"
+            className="font-mono text-xs"
+            c="green.5"
+            style={{ minHeight: "100%", width: "100%", backgroundColor: isDark ? "#000" : "#fff" }}
+          >
+            <Text size="xs" c="dimmed" mb="xs">
+              Tab: {activeTab} | Capture: {capture.enabled ? "on" : "off"} ({capture.format}) → {capture.path}
+            </Text>
+            <div>
+              {content && content.length ? (
+                content.map((line, idx) => (
+                  <pre key={idx} className="m-0">
+                    {line}
+                  </pre>
+                ))
+              ) : (
+                <Text size="xs">
+                  Placeholder terminal output...
+                  <br />
+                  Future streaming data will appear here.
+                </Text>
+              )}
+            </div>
+          </Paper>
+        )}
       </div>
     </Box>
   );

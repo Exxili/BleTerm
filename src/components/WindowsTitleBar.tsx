@@ -52,7 +52,7 @@ export const WindowsTitleBar: React.FC = () => {
   return (
     <div
       className={`
-      flex items-center justify-between h-8 px-3
+      flex items-center justify-between h-8 pl-3 pr-0
       ${
         isDark
           ? "bg-gray-800 border-gray-600 text-gray-100"

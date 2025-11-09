@@ -18,10 +18,8 @@ const TerminalLayout = (): React.JSX.Element => {
   const isDark = colorScheme === "dark";
 
   // Tabs
-  const [tabs, setTabs] = useState<ITerminalTab[]>([
-    { id: "console", label: "Console" },
-  ]);
-  const [activeTab, setActiveTab] = useState("console");
+  const [tabs, setTabs] = useState<ITerminalTab[]>([]);
+  const [activeTab, setActiveTab] = useState("");
 
   // Selected device (from BLE sidebar)
   const [selectedDevice, setSelectedDevice] = useState<string>("");
@@ -215,6 +213,52 @@ const TerminalLayout = (): React.JSX.Element => {
           tabs={tabs}
           activeTab={activeTab}
           onSelectTab={setActiveTab}
+          onCloseTab={(id) => {
+            setTabs((prev) => {
+              const idx = prev.findIndex((t) => t.id === id);
+              if (idx === -1) return prev;
+              const next = prev.filter((t) => t.id !== id);
+              // adjust active tab
+              if (activeTab === id) {
+                const newActive = next[idx - 1]?.id || next[0]?.id || "";
+                setActiveTab(newActive || "");
+              }
+              return next;
+            });
+            // If closing a watch tab, stop notifications
+            if (id.startsWith("watch:")) {
+              const parts = id.split(":");
+              const serviceUuid = parts[1];
+              const charUuid = parts[2];
+              const key = `${serviceUuid}:${charUuid}`;
+              if (activeWatchersRef.current.has(key)) {
+                const ble = (window as unknown as {
+                  ble?: { notifyStop: (dev: string, s: string, c: string) => Promise<void> };
+                }).ble;
+                const devId = currentDeviceRef.current;
+                if (ble && devId) {
+                  ble.notifyStop(devId, serviceUuid, charUuid).finally(() => {
+                    activeWatchersRef.current.delete(key);
+                  });
+                } else {
+                  activeWatchersRef.current.delete(key);
+                }
+              }
+            }
+          }}
+          onReorder={(from, to) => {
+            setTabs((prev) => {
+              if (from < 0 || from >= prev.length || to < 0 || to >= prev.length) return prev;
+              if (from === to) return prev;
+              const next = [...prev];
+              const [moved] = next.splice(from, 1);
+              next.splice(to, 0, moved);
+              // keep activeTab if same id, else adjust if shifted
+              const activeIdx = next.findIndex((t) => t.id === activeTab);
+              if (activeIdx === -1 && next.length) setActiveTab(next[0].id);
+              return next;
+            });
+          }}
           capture={{
             enabled: false,
             format: "raw",
