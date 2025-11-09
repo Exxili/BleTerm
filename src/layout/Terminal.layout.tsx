@@ -22,7 +22,6 @@ const TerminalLayout = (): React.JSX.Element => {
   // Writable chars (will be filled in Step 3 when we wire services/chars)
   const [writable, setWritable] = useState<ICharacteristic[]>([]);
   const [tabContent, setTabContent] = useState<Record<string, string[]>>({});
-  const notifyHandlerRef = useRef<(event: any, data: any) => void>();
   const activeWatchersRef = useRef<Set<string>>(new Set());
   const [tabActivity, setTabActivity] = useState<Record<string, { ts: number; count: number }>>({});
 
@@ -52,23 +51,37 @@ const TerminalLayout = (): React.JSX.Element => {
     // Execute action for read/watch tabs
     const [kind, serviceUuid, charUuid] = tab.id.split(":");
     if (kind === "read" && selectedDevice) {
-      (window as any).ble
+      const ble = (window as unknown as {
+        ble?: { read: (id: string, s: string, c: string) => Promise<string> };
+      }).ble;
+      if (!ble) return;
+      ble
         .read(selectedDevice, serviceUuid, charUuid)
         .then((hex: string) => {
           appendLine(tab.id, formatLine(`READ ${serviceUuid}/${charUuid}: ${hex}`));
         })
-        .catch((e: any) => appendLine(tab.id, formatLine(`READ error: ${e?.message || e}`)));
+        .catch((e: unknown) => {
+          const msg = (e as { message?: string })?.message || String(e);
+          appendLine(tab.id, formatLine(`READ error: ${msg}`));
+        });
     }
     if (kind === "watch" && selectedDevice) {
       const key = `${serviceUuid}:${charUuid}`;
       if (!activeWatchersRef.current.has(key)) {
-        (window as any).ble
+        const ble = (window as unknown as {
+          ble?: { notifyStart: (id: string, s: string, c: string) => Promise<void> };
+        }).ble;
+        if (!ble) return;
+        ble
           .notifyStart(selectedDevice, serviceUuid, charUuid)
           .then(() => {
             activeWatchersRef.current.add(key);
             appendLine(tab.id, formatLine(`WATCH started ${serviceUuid}/${charUuid}`));
           })
-          .catch((e: any) => appendLine(tab.id, formatLine(`WATCH error: ${e?.message || e}`)));
+          .catch((e: unknown) => {
+            const msg = (e as { message?: string })?.message || String(e);
+            appendLine(tab.id, formatLine(`WATCH error: ${msg}`));
+          });
       } else {
         appendLine(tab.id, formatLine(`WATCH already active ${serviceUuid}/${charUuid}`));
       }
@@ -96,9 +109,12 @@ const TerminalLayout = (): React.JSX.Element => {
 
   // Listen once for notify data and route to matching watch tab
   useEffect(() => {
-    const bridge = (window as any)?.ble;
+    const bridge = (window as unknown as {
+      ble?: { on: <T = unknown>(c: string, l: (e: unknown, d: T) => void) => void; off: <T = unknown>(c: string, l: (e: unknown, d: T) => void) => void };
+    }).ble;
     if (!bridge) return;
-    const handler = (_: any, d: any) => {
+    type NotifyData = { peripheralId: string; serviceUuid: string; charUuid: string; data: string };
+    const handler = (_: unknown, d: NotifyData) => {
       if (!d) return;
       const cur = currentDeviceRef.current;
       if (cur && d.peripheralId !== cur) return;
@@ -118,13 +134,15 @@ const TerminalLayout = (): React.JSX.Element => {
         return { ...prev, [tabId]: { ts: Date.now(), count } };
       });
     };
-    bridge.on("ble:notify:data", handler);
-    return () => bridge.off("ble:notify:data", handler);
+    bridge.on<NotifyData>("ble:notify:data", handler);
+    return () => bridge.off<NotifyData>("ble:notify:data", handler);
   }, []);
 
   // On disconnect, just clear our local watcher registry; main cleans up subs
   useEffect(() => {
-    const bridge = (window as any)?.ble;
+    const bridge = (window as unknown as {
+      ble?: { on: (c: string, l: (e: unknown) => void) => void; off: (c: string, l: (e: unknown) => void) => void };
+    }).ble;
     if (!bridge) return;
     const onDisc = () => {
       activeWatchersRef.current.clear();
@@ -154,7 +172,6 @@ const TerminalLayout = (): React.JSX.Element => {
         </div>
 
         <TerminalSendBar
-          isDark={isDark}
           writable={writable}
           selectedDevice={selectedDevice}
           onSend={handleSend}

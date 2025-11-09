@@ -59,12 +59,12 @@ const cleanupPeripheral = async (peripheralId: string) => {
     // Always detach our specific data handler first
     try {
       entry.char?.off?.("data", entry.onData);
-    } catch {}
+    } catch { /* noop */ }
     // Only attempt to unsubscribe if still connected to avoid noisy errors from noble
     if (isConnected) {
       try {
         await ((entry.char as any).unsubscribeAsync?.() || promisifyIfNeeded<void>(entry.char.unsubscribe, entry.char));
-      } catch {}
+      } catch { /* noop */ }
     }
     activeNotifications.delete(key);
   }
@@ -281,12 +281,12 @@ const stopNotify = async (
   if (!c) return;
   try {
     await ((c as any).unsubscribeAsync?.() || promisifyIfNeeded<void>(c.unsubscribe, c));
-  } catch {}
+  } catch { /* noop */ }
   try {
     const onData = existing?.onData;
     if (onData) (c as any).off?.("data", onData);
     else c.removeAllListeners?.("data");
-  } catch {}
+  } catch { /* noop */ }
   activeNotifications.delete(key);
 };
 
@@ -539,13 +539,13 @@ export const DestroyBluetoothServices = (): void => {
         if ((p as any).state === "connected") {
           try {
             (p as any).disconnect?.();
-          } catch {}
+          } catch { /* noop */ }
         }
       });
     }
-  } catch {}
-  try { stopScan(); } catch {}
-  try { DettachNobleEvents(); } catch {}
-  try { unregisterIpcHandlers(); } catch {}
+  } catch { /* noop */ }
+  try { stopScan(); } catch { /* noop */ }
+  try { DettachNobleEvents(); } catch { /* noop */ }
+  try { unregisterIpcHandlers(); } catch { /* noop */ }
 };
 const norm = (u: string) => (u || "").toLowerCase();

@@ -21,7 +21,7 @@ export const TerminalTabs = ({
 }) => {
   const ACTIVE_MS = 1200;
   const FLASH_MS = 180;
-  const [tick, setTick] = useState(0); // forces re-render for flash back-to-red
+  const [, setTick] = useState(0); // forces re-render for flash back-to-red
 
   // Drive re-render while any tab has recent activity so the flash can revert
   useEffect(() => {
@@ -38,7 +38,6 @@ export const TerminalTabs = ({
       setTick((t) => t + 1);
     }, 100);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity]);
   return (
     <Box style={{ WebkitAppRegion: "no-drag" }} className="h-full min-h-0 grid grid-rows-[auto_1fr]">

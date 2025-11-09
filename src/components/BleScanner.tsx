@@ -6,7 +6,7 @@ interface Device {
   rssi?: number;
 }
 
-function BleScanner(): React.JSX.Element {`1`
+function BleScanner(): React.JSX.Element {
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
 
@@ -25,17 +25,23 @@ function BleScanner(): React.JSX.Element {`1`
   useEffect(() => {
     const onBleDeviceDiscovered = (
       _: Electron.IpcRendererEvent,
-      device: any
+      device: unknown
     ) => {
+      const d = device as Partial<Device> & { id?: string };
+      if (!d || !d.id) return;
       // Log the type of device for debugging
-      console.log("Discovered device:", device);
+      console.log("Discovered device:", d);
 
       setDevices((prev) => {
-        const exists = prev.find((d) => d.id === device.id);
+        const exists = prev.find((p) => p.id === d.id);
         if (exists) {
-          return prev.map((d) => (d.id === device.id ? device : d));
+          return prev.map((p) => (p.id === d.id ? ({
+            id: d.id!,
+            name: d.name || p.name,
+            rssi: d.rssi ?? p.rssi,
+          }) : p));
         }
-        return [...prev, device];
+        return [...prev, { id: d.id!, name: d.name || "", rssi: d.rssi }];
       });
     };
 

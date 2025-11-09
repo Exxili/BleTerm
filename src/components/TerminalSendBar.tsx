@@ -27,12 +27,10 @@ interface SendRow {
 }
 
 export const TerminalSendBar = ({
-  isDark,
   writable,
   selectedDevice,
   onSend,
 }: {
-  isDark: boolean;
   writable: ICharacteristic[];
   selectedDevice?: string;
   onSend: (
@@ -154,10 +152,12 @@ export const TerminalSendBar = ({
   };
 
   useEffect(() => {
+    const timers = timersRef.current;
+    const remaining = remainingRef.current;
     return () => {
-      timersRef.current.forEach((t) => clearInterval(t));
-      timersRef.current.clear();
-      remainingRef.current.clear();
+      timers.forEach((t) => clearInterval(t));
+      timers.clear();
+      remaining.clear();
     };
   }, []);
 

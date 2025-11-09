@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { StoreApi } from "zustand";
 
 export interface ScanDevice {
   id: string;
@@ -19,6 +20,7 @@ interface ConnectedInfo {
   id: string;
   name?: string;
 }
+
 
 interface BleState {
   // state
@@ -43,12 +45,23 @@ const SCAN_MS = 5000;
 let bridgeListenersAttached = false as boolean;
 let stopTimer: number | null = null;
 
-const bridge = ((): any => (window as any)?.ble)();
+type BleIpcListener<T = unknown> = (event: unknown, data: T) => void;
+interface BleBridge {
+  scan: () => Promise<void>;
+  stop: () => Promise<void>;
+  connect: (id: string) => Promise<{ id: string; localName?: string }>;
+  disconnect: (id: string) => Promise<void>;
+  services: (id: string) => Promise<BleServiceInfo[]>;
+  on: <T = unknown>(channel: string, listener: BleIpcListener<T>) => void;
+  off: <T = unknown>(channel: string, listener: BleIpcListener<T>) => void;
+}
 
-const ensureBridgeListeners = (set: any, get: any) => {
+const bridge: BleBridge | undefined = ((): BleBridge | undefined => (window as unknown as { ble?: BleBridge })?.ble)();
+
+const ensureBridgeListeners = (set: StoreApi<BleState>["setState"]) => {
   if (bridgeListenersAttached || !bridge) return;
 
-  const onResult = (_: any, dev: ScanDevice) => {
+  const onResult = (_: unknown, dev: ScanDevice) => {
     set((st: BleState) => {
       if (st.devices.find((d) => d.id === dev.id)) return {};
       return { devices: [...st.devices, dev] };
@@ -61,24 +74,27 @@ const ensureBridgeListeners = (set: any, get: any) => {
     }
     set({ scanning: false });
   };
-  const onErr = (_: any, d: any) => {
-    set({ error: d?.message || "BLE error", scanning: false, discovering: false });
+  const onErr = (_: unknown, d: unknown) => {
+    const msg = (d as { message?: string })?.message || "BLE error";
+    set({ error: msg, scanning: false, discovering: false });
   };
-  const onConnected = (_: any, d: any) => {
-    set({ connected: { id: d?.id, name: d?.localName }, selectedDevice: d?.id || null });
+  const onConnected = (_: unknown, d: unknown) => {
+    const payload = d as { id?: string; localName?: string };
+    set({ connected: { id: payload?.id as string, name: payload?.localName }, selectedDevice: payload?.id || null });
   };
-  const onDisconnected = (_: any, d: any) => {
+  const onDisconnected = (_: unknown, d: unknown) => {
+    const payload = d as { id?: string };
     set((st: BleState) => {
-      if (!st.connected || st.connected.id !== d?.id) return {};
+      if (!st.connected || st.connected.id !== payload?.id) return {};
       return { connected: null, services: [], discovering: false };
     });
   };
 
-  bridge.on("ble:scan:result", onResult);
+  bridge.on<ScanDevice>("ble:scan:result", onResult);
   bridge.on("ble:scan:finished", onFinished);
   bridge.on("ble:error", onErr);
-  bridge.on("ble:connected", onConnected);
-  bridge.on("ble:disconnected", onDisconnected);
+  bridge.on<{ id?: string; localName?: string }>("ble:connected", onConnected);
+  bridge.on<{ id?: string }>("ble:disconnected", onDisconnected);
   bridgeListenersAttached = true;
 };
 
@@ -94,7 +110,7 @@ export const useBleStore = create<BleState>((set, get) => ({
   selectDevice: (id) => set({ selectedDevice: id }),
 
   startScan: async () => {
-    ensureBridgeListeners(set, get);
+    ensureBridgeListeners(set);
     if (!bridge) return;
     if (get().scanning) return;
     set({ devices: [], error: null, scanning: true });
@@ -116,16 +132,16 @@ export const useBleStore = create<BleState>((set, get) => ({
   },
 
   connect: async (id?: string | null) => {
-    ensureBridgeListeners(set, get);
+    ensureBridgeListeners(set);
     if (!bridge) return;
     const toConnect = id ?? get().selectedDevice;
     if (!toConnect) return;
     try {
       const info = await bridge.connect(toConnect);
-      set({ connected: { id: info?.id ?? toConnect, name: info?.localName }, selectedDevice: info?.id ?? toConnect });
-    } catch (e: any) {
+      set({ connected: { id: info?.id ?? toConnect, name: info?.localName }, selectedDevice: (info?.id ?? toConnect) });
+    } catch (e) {
       // benign already-connected case shouldn't break flow
-      const msg = e?.message || String(e || "");
+      const msg = (e as { message?: string })?.message || String(e || "");
       if (!/already connected/i.test(msg)) {
         set({ error: msg });
         throw e;
@@ -151,11 +167,10 @@ export const useBleStore = create<BleState>((set, get) => ({
     try {
       const svc = await bridge.services(cur);
       set({ services: svc });
-    } catch (e: any) {
-      set({ error: e?.message || String(e) });
+    } catch (e) {
+      set({ error: (e as { message?: string })?.message || String(e) });
     } finally {
       set({ discovering: false });
     }
   },
 }));
-

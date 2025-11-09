@@ -1,7 +1,6 @@
 import { ipcRenderer, contextBridge } from "electron";
 import { PlatformService } from "./services/platform";
 import { WindowControlService } from "./services/window";
-import { BLEChannels } from "./services/bluetooth";
 // import { BLEChannels } from "./services/bluetooth";
 
 // --------- Expose some API to the Renderer process ---------
@@ -85,9 +84,9 @@ contextBridge.exposeInMainWorld("ble", {
     ipcRenderer.invoke("ble:notify:start", peripheralId, serviceUuid, charUuid),
   notifyStop: (peripheralId: string, serviceUuid: string, charUuid: string) =>
     ipcRenderer.invoke("ble:notify:stop", peripheralId, serviceUuid, charUuid),
-  on: (channel: string, listener: (event: any, data: any) => void) =>
-    ipcRenderer.on(channel, listener),
-  off: (channel: string, listener: (...args: any[]) => void) =>
-    ipcRenderer.removeListener(channel, listener),
+  on: (channel: string, listener: (event: unknown, data: unknown) => void) =>
+    ipcRenderer.on(channel, (event, data) => listener(event, data)),
+  off: (channel: string, listener: (event: unknown, data: unknown) => void) =>
+    ipcRenderer.removeListener(channel, listener as unknown as (...args: unknown[]) => void),
   // channels: BLEChannels,
 });

@@ -22,6 +22,10 @@ const SettingsSideBar = ({
   const [captureOpen, setCaptureOpen] = useState(false);
   const [uiOpen, setUiOpen] = useState(true);
   const conn = useBleStore((s) => s.connected);
+  // Local file capture state (placeholder until wired elsewhere)
+  const [capEnabled, setCapEnabled] = useState(false);
+  const [capPath, setCapPath] = useState("captures/session.log");
+  const [capFormat, setCapFormat] = useState<"raw" | "hex" | "utf8">("raw");
 
   return (
     <div
@@ -66,7 +70,15 @@ const SettingsSideBar = ({
         onToggle={() => setCaptureOpen((o) => !o)}
         isDark={isDark}
       >
-        <FileCaptureSection isDark={isDark} />
+        <FileCaptureSection
+          isDark={isDark}
+          enabled={capEnabled}
+          path={capPath}
+          format={capFormat}
+          setEnabled={setCapEnabled}
+          setPath={setCapPath}
+          setFormat={setCapFormat}
+        />
       </Collapsible>
 
       <Collapsible

@@ -108,7 +108,7 @@ const InitializeMainWindow = (): void => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-    try { DestroyServices(); } catch {}
+    try { DestroyServices(); } catch { /* noop: best-effort cleanup */ }
     app.quit();
     SetMainWindow(null);
   }
@@ -116,7 +116,7 @@ app.on("window-all-closed", () => {
 
 // Ensure services tear down on app quit from any path (close button, Ctrl+C, etc.)
 app.on("before-quit", () => {
-  try { DestroyServices(); } catch {}
+  try { DestroyServices(); } catch { /* noop: best-effort cleanup */ }
 });
 
 app.on("activate", () => {

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Button, Badge, Group, Paper, Text, Stack, Loader } from "@mantine/core";
-import { useBleStore } from "../state/useBleStore";
+import { useBleStore, BleServiceInfo } from "../state/useBleStore";
 
 interface Props {
   isDark: boolean;
@@ -33,14 +33,14 @@ export const BleSection = ({
   // Derive and emit writables whenever services change
   useEffect(() => {
     if (!onWritableChange) return;
-    const writables = (services || []).flatMap((svc: any) =>
+    const writables = (services || []).flatMap((svc: BleServiceInfo) =>
       (svc.characteristics || [])
         .filter(
-          (c: any) =>
+          (c) =>
             (c.properties || []).includes("write") ||
             (c.properties || []).includes("writeWithoutResponse")
         )
-        .map((c: any) => ({ id: `${svc.uuid}:${c.uuid}` as string, uuid: c.uuid as string }))
+        .map((c) => ({ id: `${svc.uuid}:${c.uuid}` as string, uuid: c.uuid as string }))
     );
     onWritableChange(writables);
   }, [services, onWritableChange]);
