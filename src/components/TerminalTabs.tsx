@@ -71,7 +71,9 @@ export const TerminalTabs = ({
               onDragStart={(e) => {
                 try {
                   e.dataTransfer.setData("text/plain", String(index));
-                } catch {}
+                } catch {
+                  void 0; // noop: setData may throw in some environments
+                }
                 // For Firefox
                 e.dataTransfer.effectAllowed = "move";
               }}
