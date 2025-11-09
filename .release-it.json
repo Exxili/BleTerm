@@ -25,6 +25,6 @@
     "publish": false
   },
   "hooks": {
-    "after:git.tag": "npm run build"
+    "before:github:release": "npm run build"
   }
 }
